@@ -57,9 +57,7 @@ public class Main {
     private static void runSafely(Runnable action) {
         try {
             action.run();
-        } catch (EntityNotFoundException exception) {
-            System.out.println(exception.getMessage());
-        } catch (InvalidInputException exception) {
+        } catch (EntityNotFoundException | InvalidInputException exception) {
             System.out.println(exception.getMessage());
         } catch (Exception exception) {
             System.out.println("Something went wrong while processing your request.");
