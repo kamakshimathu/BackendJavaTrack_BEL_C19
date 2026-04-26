@@ -1,0 +1,3 @@
+# Ignore Java build output folders
+out/
+**/out/
