@@ -1,3 +1,7 @@
 # Ignore Java build output folders
 out/
 **/out/
+
+# Ignore local editor settings
+.vscode/
+**/.vscode/
