@@ -1,0 +1,25 @@
+Maria Garcia
+Data Scientist
+Email: maria.garcia@example.com | Phone: (555) 234-5678
+Location: Seattle, WA
+
+SUMMARY
+Data scientist specialising in machine learning and statistical modelling.
+Comfortable taking models from notebook to production.
+
+SKILLS
+- Languages: Python, R, SQL
+- ML: scikit-learn, PyTorch, TensorFlow, XGBoost
+- Data: pandas, NumPy, Spark
+- Visualisation: matplotlib, Tableau
+
+EXPERIENCE
+Senior Data Scientist, InsightLoop (2020 - Present)
+- Built a churn-prediction model in Python that reduced churn by 12%.
+- Deployed ML pipelines with MLflow and Airflow.
+
+Data Analyst, RetailIQ (2017 - 2020)
+- Automated weekly reporting with Python, saving 15 hours/week.
+
+EDUCATION
+M.S. Statistics, University of Washington, 2017

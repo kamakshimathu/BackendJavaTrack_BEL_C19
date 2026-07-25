@@ -1,0 +1,25 @@
+John Doe
+Senior Backend Engineer
+Email: john.doe@example.com | Phone: (555) 012-3456
+Location: Austin, TX
+
+SUMMARY
+Backend engineer with 8 years of experience building scalable web services.
+Strong focus on Python, distributed systems, and cloud infrastructure.
+
+SKILLS
+- Languages: Python, Go, SQL
+- Frameworks: Django, FastAPI, Flask
+- Cloud: AWS (EC2, Lambda, S3), Docker, Kubernetes
+- Databases: PostgreSQL, Redis
+
+EXPERIENCE
+Staff Engineer, Cloudform Inc. (2019 - Present)
+- Led migration of a monolith to Python microservices, cutting latency 40%.
+- Built data pipelines processing 2B events/day using Python and Kafka.
+
+Software Engineer, DataNest (2016 - 2019)
+- Developed REST APIs in Django serving 5M daily users.
+
+EDUCATION
+B.S. Computer Science, University of Texas at Austin, 2016

@@ -1,0 +1,26 @@
+Sofia Rossi
+Product Manager
+Email: sofia.rossi@example.com | Phone: (555) 567-8901
+Location: Milan, Italy
+
+SUMMARY
+Product manager with a track record of shipping B2B SaaS products from
+discovery to launch. Strong in stakeholder alignment and data-driven roadmaps.
+
+SKILLS
+- Product: roadmapping, user research, A/B testing, OKRs
+- Analytics: SQL, Amplitude, Looker
+- Collaboration: Jira, Confluence, Figma
+- Methods: Agile, Scrum, continuous discovery
+
+EXPERIENCE
+Senior Product Manager, Cadence Software (2019 - Present)
+- Launched a billing platform that grew ARR by $4M in 18 months.
+- Ran weekly customer interviews to shape the product roadmap.
+
+Product Manager, Vialto (2016 - 2019)
+- Owned the onboarding funnel, lifting activation rate from 41% to 63%.
+
+EDUCATION
+MBA, Bocconi University, 2016
+B.S. Economics, University of Bologna, 2013

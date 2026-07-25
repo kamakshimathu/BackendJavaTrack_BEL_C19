@@ -1,0 +1,25 @@
+David Okafor
+Machine Learning Engineer
+Email: david.okafor@example.com | Phone: (555) 678-9012
+Location: Remote
+
+SUMMARY
+ML engineer bridging research and production. Experienced in NLP and building
+LLM-powered applications with Python.
+
+SKILLS
+- Languages: Python, C++
+- ML/NLP: PyTorch, Hugging Face Transformers, spaCy, LangChain
+- Serving: FastAPI, Triton, ONNX
+- Infra: Docker, Kubernetes, AWS SageMaker
+
+EXPERIENCE
+ML Engineer, Verba AI (2021 - Present)
+- Built a retrieval-augmented generation service in Python serving 1M queries/mo.
+- Fine-tuned transformer models for document classification (F1 0.94).
+
+Research Engineer, Lingua Labs (2018 - 2021)
+- Published two papers on low-resource machine translation.
+
+EDUCATION
+M.S. Computer Science (NLP), Carnegie Mellon University, 2018

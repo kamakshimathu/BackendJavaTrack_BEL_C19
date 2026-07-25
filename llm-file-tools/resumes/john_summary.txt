@@ -1,0 +1,1 @@
+John Doe is a Senior Backend Engineer with 8 years of experience in building scalable web services, specializing in Python, distributed systems, and cloud infrastructure. He has led significant projects, including the migration of a monolith to Python microservices at Cloudform Inc. and developing REST APIs serving millions of daily users at DataNest.
