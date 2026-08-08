@@ -1,0 +1,10 @@
+# LLM integration (function calling)
+openai>=1.40.0
+python-dotenv>=1.0.0  # load OPENAI_API_KEY from a .env file
+
+# File parsing for read_file()
+pypdf>=4.0.0          # read .pdf resumes
+python-docx>=1.1.0    # read/write .docx resumes
+
+# Sample-data generation only (generate_sample_docs.py)
+reportlab>=4.0.0      # create .pdf sample resumes

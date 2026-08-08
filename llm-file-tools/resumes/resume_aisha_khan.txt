@@ -1,0 +1,24 @@
+Aisha Khan
+DevOps / Platform Engineer
+Email: aisha.khan@example.com | Phone: (555) 456-7890
+Location: London, UK
+
+SUMMARY
+Platform engineer automating infrastructure and CI/CD for cloud-native teams.
+
+SKILLS
+- Languages: Python, Bash, Go
+- IaC: Terraform, Ansible, Pulumi
+- Cloud: AWS, GCP, Kubernetes, Helm
+- Observability: Prometheus, Grafana, Datadog
+
+EXPERIENCE
+Platform Engineer, Northwind Cloud (2020 - Present)
+- Wrote Python automation to provision ephemeral test environments.
+- Reduced deployment time from 45 to 6 minutes with a new CI/CD pipeline.
+
+Systems Engineer, GridPoint (2017 - 2020)
+- Managed a 300-node Kubernetes fleet across three regions.
+
+EDUCATION
+B.Eng. Computer Engineering, Imperial College London, 2017

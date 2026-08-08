@@ -1,0 +1,24 @@
+Liam Chen
+Frontend Engineer
+Email: liam.chen@example.com | Phone: (555) 345-6789
+Location: Toronto, ON
+
+SUMMARY
+Frontend engineer focused on accessible, high-performance web applications.
+
+SKILLS
+- Languages: JavaScript, TypeScript, HTML, CSS
+- Frameworks: React, Next.js, Vue
+- Tooling: Webpack, Vite, Jest, Cypress
+- Design: Figma, responsive design, WCAG accessibility
+
+EXPERIENCE
+Frontend Lead, Brightside Apps (2021 - Present)
+- Rebuilt the design system in React and TypeScript, improving load time 35%.
+- Mentored 4 engineers on component architecture and testing.
+
+UI Developer, Pixelworks (2018 - 2021)
+- Shipped a customer dashboard used by 200k monthly active users.
+
+EDUCATION
+B.A. Interaction Design, OCAD University, 2018
