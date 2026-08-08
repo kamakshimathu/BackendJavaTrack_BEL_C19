@@ -1,0 +1,25 @@
+Kevin Zhou
+Backend Engineer
+Email: kevin.zhou@example.com | Phone: (555) 101-2020
+Location: Vancouver, BC
+
+SUMMARY
+Backend engineer with 3 years of experience on Python APIs and data services.
+Strong learner with FastAPI and PostgreSQL experience but below senior experience levels.
+
+SKILLS
+- Languages: Python, SQL
+- Frameworks: FastAPI, Django
+- Cloud: Docker, GCP
+- Databases: PostgreSQL, Redis
+
+EXPERIENCE
+Backend Engineer, NorthApp (2023 - Present)
+- Built FastAPI services for internal operations tools.
+- Improved PostgreSQL migrations and API observability.
+
+Junior Software Engineer, AppFoundry (2021 - 2023)
+- Maintained Python scripts and Django admin workflows.
+
+EDUCATION
+B.S. Computing Science, Simon Fraser University, 2021

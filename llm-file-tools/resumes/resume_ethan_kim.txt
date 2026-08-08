@@ -1,0 +1,25 @@
+Ethan Kim
+Node.js Engineer
+Email: ethan.kim@example.com | Phone: (555) 101-2007
+Location: Seattle, WA
+
+SUMMARY
+Backend engineer with 5 years of experience building Node.js services and APIs.
+Works with TypeScript, PostgreSQL, Docker, and AWS Lambda.
+
+SKILLS
+- Languages: TypeScript, JavaScript, SQL
+- Frameworks: Node.js, Express, NestJS
+- Cloud: AWS, Docker
+- Databases: PostgreSQL, DynamoDB, Redis
+
+EXPERIENCE
+Node.js Engineer, StreamCart (2021 - Present)
+- Built TypeScript services for checkout orchestration on AWS Lambda.
+- Designed PostgreSQL schemas for product and inventory APIs.
+
+Software Engineer, CloudKite (2019 - 2021)
+- Maintained Express APIs and Docker deployment pipelines.
+
+EDUCATION
+B.S. Computer Science, University of Washington, 2019

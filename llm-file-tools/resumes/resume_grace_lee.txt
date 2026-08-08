@@ -1,0 +1,25 @@
+Grace Lee
+Data Engineer
+Email: grace.lee@example.com | Phone: (555) 101-2008
+Location: Denver, CO
+
+SUMMARY
+Data engineer with 7 years of experience building batch and streaming pipelines.
+Strong in Python, SQL, Spark, Airflow, and AWS.
+
+SKILLS
+- Languages: Python, SQL, Scala
+- Data: Spark, Airflow, Kafka, dbt
+- Cloud: AWS, Docker
+- Databases: PostgreSQL, Snowflake
+
+EXPERIENCE
+Senior Data Engineer, SignalLake (2020 - Present)
+- Built Spark pipelines on AWS EMR processing customer event data.
+- Orchestrated data quality checks with Airflow and SQL.
+
+Data Engineer, RetailSignals (2017 - 2020)
+- Built Python ETL jobs and PostgreSQL reporting marts.
+
+EDUCATION
+B.S. Data Science, University of Colorado Denver, 2017

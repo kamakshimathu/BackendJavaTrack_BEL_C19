@@ -1,0 +1,25 @@
+Rachel Adams
+Senior Data Engineer
+Email: rachel.adams@example.com | Phone: (555) 101-2027
+Location: Kansas City, MO
+
+SUMMARY
+Senior data engineer with 10 years of experience building analytics platforms.
+Strong in Python, SQL, Spark, Airflow, AWS, and PostgreSQL.
+
+SKILLS
+- Languages: Python, SQL, Scala
+- Data: Spark, Airflow, Kafka, dbt
+- Cloud: AWS, Docker, Kubernetes
+- Databases: PostgreSQL, Snowflake, Redshift
+
+EXPERIENCE
+Senior Data Engineer, FarmSignals (2019 - Present)
+- Built Spark pipelines on AWS for supply chain forecasting.
+- Led Airflow migration and PostgreSQL data mart redesign.
+
+Data Engineer, MetroMetrics (2014 - 2019)
+- Built Python ETL jobs and SQL reporting systems.
+
+EDUCATION
+B.S. Computer Information Systems, University of Missouri Kansas City, 2014

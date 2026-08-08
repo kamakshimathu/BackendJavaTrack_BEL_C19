@@ -1,0 +1,25 @@
+Miguel Torres
+Senior Java Backend Engineer
+Email: miguel.torres@example.com | Phone: (555) 101-2003
+Location: Miami, FL
+
+SUMMARY
+Java backend engineer with 9 years of experience building high-throughput services.
+Experienced with Spring Boot, AWS, PostgreSQL, and distributed systems.
+
+SKILLS
+- Languages: Java, SQL, Kotlin
+- Frameworks: Spring Boot, Hibernate
+- Cloud: AWS, Docker, Kubernetes
+- Databases: PostgreSQL, MySQL, Redis
+
+EXPERIENCE
+Senior Java Engineer, FreightPulse (2020 - Present)
+- Built Spring Boot APIs for shipment tracking on AWS.
+- Migrated order storage from MySQL to PostgreSQL with zero downtime.
+
+Java Engineer, PayOrbit (2015 - 2020)
+- Developed Java payment services and Kafka consumers.
+
+EDUCATION
+B.S. Information Systems, Florida State University, 2015

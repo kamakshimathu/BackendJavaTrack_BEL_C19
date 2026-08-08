@@ -1,0 +1,25 @@
+Nina Park
+Java Platform Engineer
+Email: nina.park@example.com | Phone: (555) 101-2004
+Location: San Jose, CA
+
+SUMMARY
+Backend engineer with 6 years of experience on enterprise Java systems.
+Comfortable with Spring Boot, PostgreSQL, Docker, and CI/CD.
+
+SKILLS
+- Languages: Java, SQL, Python
+- Frameworks: Spring Boot, Spring Security
+- Cloud: Docker, Jenkins, Azure
+- Databases: PostgreSQL, Oracle
+
+EXPERIENCE
+Java Platform Engineer, ClearLedger (2021 - Present)
+- Built Spring Boot services for audit and compliance workflows.
+- Containerized Java services using Docker and improved release reliability.
+
+Software Engineer, Nova Retail (2018 - 2021)
+- Maintained Java services backed by PostgreSQL and Oracle.
+
+EDUCATION
+B.S. Computer Engineering, San Jose State University, 2018

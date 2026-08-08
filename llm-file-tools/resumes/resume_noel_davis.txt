@@ -1,0 +1,25 @@
+Noel Davis
+Mobile Engineer
+Email: noel.davis@example.com | Phone: (555) 101-2016
+Location: Los Angeles, CA
+
+SUMMARY
+Mobile engineer with 5 years of experience shipping customer-facing apps.
+Strong in Kotlin, Swift, React Native, REST APIs, and mobile testing.
+
+SKILLS
+- Languages: Kotlin, Swift, TypeScript
+- Mobile: Android, iOS, React Native
+- Backend: REST APIs, Firebase, Node.js
+- Testing: XCTest, Espresso, Detox
+
+EXPERIENCE
+Mobile Engineer, RideLoop (2021 - Present)
+- Built Kotlin and Swift features for driver onboarding and payments.
+- Integrated mobile apps with Node.js APIs and Firebase messaging.
+
+React Native Developer, LocalCart (2019 - 2021)
+- Shipped cross-platform mobile features and test automation.
+
+EDUCATION
+B.S. Computer Science, UCLA, 2019

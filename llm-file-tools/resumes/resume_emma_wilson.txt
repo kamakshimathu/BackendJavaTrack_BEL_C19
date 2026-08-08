@@ -1,0 +1,25 @@
+Emma Wilson
+Senior Python Backend Engineer
+Email: emma.wilson@example.com | Phone: (555) 101-2001
+Location: Boston, MA
+
+SUMMARY
+Backend engineer with 7 years of experience building APIs and event-driven services.
+Strong in Python, FastAPI, PostgreSQL, Docker, and AWS.
+
+SKILLS
+- Languages: Python, SQL, JavaScript
+- Frameworks: FastAPI, Django, Flask
+- Cloud: AWS, Docker, Kubernetes
+- Databases: PostgreSQL, Redis
+
+EXPERIENCE
+Senior Backend Engineer, Northstar Health (2021 - Present)
+- Built FastAPI services for patient data workflows on AWS ECS.
+- Tuned PostgreSQL queries and reduced API latency by 35%.
+
+Backend Engineer, LedgerWorks (2017 - 2021)
+- Developed Python services and background workers for payment reconciliation.
+
+EDUCATION
+B.S. Computer Science, Northeastern University, 2017

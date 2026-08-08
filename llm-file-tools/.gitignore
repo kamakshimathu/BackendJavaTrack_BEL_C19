@@ -6,3 +6,6 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# Generated resume vector database
+chroma_db/

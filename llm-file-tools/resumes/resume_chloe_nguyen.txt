@@ -1,0 +1,25 @@
+Chloe Nguyen
+Cloud Engineer
+Email: chloe.nguyen@example.com | Phone: (555) 101-2013
+Location: Phoenix, AZ
+
+SUMMARY
+Cloud engineer with 6 years of experience designing AWS infrastructure.
+Strong in Terraform, Docker, networking, and security controls, with limited Kubernetes usage.
+
+SKILLS
+- Languages: Python, Bash
+- Cloud: AWS, Azure, Docker
+- IaC: Terraform, CloudFormation
+- Security: IAM, GuardDuty, VPC design
+
+EXPERIENCE
+Cloud Engineer, MesaCloud (2021 - Present)
+- Built Terraform modules for AWS networking and compute standards.
+- Implemented IAM guardrails and Docker deployment templates.
+
+Infrastructure Engineer, WestData (2018 - 2021)
+- Supported cloud migrations and automated server builds.
+
+EDUCATION
+B.S. Network Engineering, Arizona State University, 2018

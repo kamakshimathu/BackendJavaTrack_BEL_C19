@@ -1,0 +1,25 @@
+Aaron White
+Product Manager
+Email: aaron.white@example.com | Phone: (555) 101-2018
+Location: San Diego, CA
+
+SUMMARY
+Product manager with 8 years of experience launching SaaS workflow products.
+Strong in customer discovery, analytics, SQL, experimentation, and roadmap planning.
+
+SKILLS
+- Product: roadmapping, user research, OKRs, A/B testing
+- Analytics: SQL, Amplitude, Looker
+- Collaboration: Jira, Confluence, Figma
+- Methods: Agile, continuous discovery
+
+EXPERIENCE
+Senior Product Manager, FlowDesk (2020 - Present)
+- Led launch of workflow automation features used by 40k monthly users.
+- Used SQL and experiments to prioritize onboarding improvements.
+
+Product Manager, ClientLoop (2016 - 2020)
+- Managed roadmap and discovery for CRM integrations.
+
+EDUCATION
+MBA, University of California San Diego, 2016

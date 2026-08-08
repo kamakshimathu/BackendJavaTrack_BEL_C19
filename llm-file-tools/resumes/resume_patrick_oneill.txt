@@ -1,0 +1,25 @@
+Patrick ONeill
+Java Backend Developer
+Email: patrick.oneill@example.com | Phone: (555) 101-2028
+Location: Dublin, IE
+
+SUMMARY
+Java backend developer with 5 years of experience building financial services APIs.
+Strong in Java, Spring Boot, PostgreSQL, Docker, and message-driven systems.
+
+SKILLS
+- Languages: Java, SQL
+- Frameworks: Spring Boot, Hibernate
+- Cloud: Docker, Kubernetes
+- Databases: PostgreSQL, Redis
+
+EXPERIENCE
+Java Backend Developer, FinCore (2021 - Present)
+- Built Spring Boot services for lending workflows.
+- Improved PostgreSQL transaction performance and integration tests.
+
+Software Developer, TaxBridge (2019 - 2021)
+- Maintained Java APIs and Docker-based release pipelines.
+
+EDUCATION
+B.S. Software Development, fictional Dublin Technical College, 2019

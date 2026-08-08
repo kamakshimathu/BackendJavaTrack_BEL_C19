@@ -1,0 +1,57 @@
+[
+  {
+    "job_id": "python_backend",
+    "job_description_file": "job_descriptions/python_backend.txt",
+    "expected_candidates": [
+      "John Doe",
+      "Emma Wilson",
+      "Isabella Romero"
+    ]
+  },
+  {
+    "job_id": "java_backend",
+    "job_description_file": "job_descriptions/java_backend.txt",
+    "expected_candidates": [
+      "Miguel Torres",
+      "Tom Anderson",
+      "Victor Hughes"
+    ]
+  },
+  {
+    "job_id": "full_stack",
+    "job_description_file": "job_descriptions/full_stack.txt",
+    "expected_candidates": [
+      "Oliver Brown",
+      "Priscilla Owens",
+      "Ethan Kim",
+      "Victor Hughes"
+    ]
+  },
+  {
+    "job_id": "machine_learning",
+    "job_description_file": "job_descriptions/machine_learning.txt",
+    "expected_candidates": [
+      "Ivan Petrov",
+      "David Okafor",
+      "Lena Muller"
+    ]
+  },
+  {
+    "job_id": "devops_platform",
+    "job_description_file": "job_descriptions/devops_platform.txt",
+    "expected_candidates": [
+      "Ben Carter",
+      "Aisha Khan",
+      "Daniel Evans"
+    ]
+  },
+  {
+    "job_id": "data_engineer",
+    "job_description_file": "job_descriptions/data_engineer.txt",
+    "expected_candidates": [
+      "Grace Lee",
+      "Rachel Adams",
+      "Elena Popov"
+    ]
+  }
+]

@@ -1,0 +1,25 @@
+Zara Ali
+React Frontend Engineer
+Email: zara.ali@example.com | Phone: (555) 101-2006
+Location: New York, NY
+
+SUMMARY
+Frontend engineer with 5 years of experience building accessible web applications.
+Strong in React and TypeScript with some Node.js API collaboration.
+
+SKILLS
+- Languages: TypeScript, JavaScript, HTML, CSS
+- Frameworks: React, Next.js, Node.js
+- Testing: Jest, Cypress, Playwright
+- Tools: Figma, Storybook, Vite
+
+EXPERIENCE
+React Engineer, StudioBoard (2021 - Present)
+- Built React and TypeScript interfaces for creative project management.
+- Collaborated on Node.js API contracts and frontend performance budgets.
+
+UI Engineer, MarketHive (2019 - 2021)
+- Created reusable accessible components and test coverage with Cypress.
+
+EDUCATION
+B.A. Digital Media, fictional Hudson College, 2019

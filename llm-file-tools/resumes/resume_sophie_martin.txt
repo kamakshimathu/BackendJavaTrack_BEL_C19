@@ -1,0 +1,25 @@
+Sophie Martin
+Business Analyst
+Email: sophie.martin@example.com | Phone: (555) 101-2017
+Location: Minneapolis, MN
+
+SUMMARY
+Business analyst with 6 years of experience translating business needs into delivery plans.
+Strong in SQL, dashboards, process mapping, stakeholder interviews, and Agile delivery.
+
+SKILLS
+- Analytics: SQL, Tableau, Excel
+- Product: requirements gathering, user stories, process mapping
+- Collaboration: Jira, Confluence, Agile
+- Domain: finance operations, customer support
+
+EXPERIENCE
+Business Analyst, NorthBank Systems (2020 - Present)
+- Defined reporting requirements and SQL acceptance checks for finance teams.
+- Partnered with product managers and engineers on Agile delivery plans.
+
+Operations Analyst, ServiceNest (2018 - 2020)
+- Built Tableau dashboards and documented support workflows.
+
+EDUCATION
+B.S. Business Information Systems, University of Minnesota, 2018

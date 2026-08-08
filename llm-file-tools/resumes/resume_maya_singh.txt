@@ -1,0 +1,25 @@
+Maya Singh
+QA Automation Engineer
+Email: maya.singh@example.com | Phone: (555) 101-2015
+Location: Dallas, TX
+
+SUMMARY
+QA automation engineer with 6 years of experience building test frameworks.
+Strong in Python, Java, Playwright, Selenium, CI/CD, and API testing.
+
+SKILLS
+- Languages: Python, Java, SQL
+- Testing: Playwright, Selenium, pytest, REST Assured
+- CI/CD: Jenkins, GitHub Actions, Docker
+- Databases: PostgreSQL
+
+EXPERIENCE
+QA Automation Engineer, FinBridge (2020 - Present)
+- Built Playwright and pytest suites for banking web applications.
+- Automated API regression tests against PostgreSQL-backed services.
+
+QA Engineer, HealthDesk (2018 - 2020)
+- Maintained Selenium tests and CI quality gates.
+
+EDUCATION
+B.S. Computer Applications, fictional Dallas Technical College, 2018
