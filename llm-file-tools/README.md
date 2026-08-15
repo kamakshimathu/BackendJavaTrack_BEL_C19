@@ -438,3 +438,211 @@ It demonstrates:
 - There is no production-scale ANN tuning.
 - Local embedding model cold-start can add noticeable latency.
 
+---
+
+## Milestone 3: LangGraph Conversational Matching Agent
+
+Implemented in `matching_agent.py`.
+
+The Milestone 3 agent wraps the existing Milestone 2 matcher in a LangGraph
+state machine. It does not rebuild the RAG pipeline and does not replace the
+deterministic ranking formula. The graph tracks:
+
+```python
+messages
+raw_query
+job_description
+requirements
+candidate_shortlist
+previous_candidate_shortlist
+deep_analysis
+report
+human_feedback
+ranking_changes
+current_intent
+```
+
+Workflow:
+
+```text
+START
+  -> Intent
+  -> Parse JD / Extract Requirements
+  -> Search Resumes with existing Chroma index
+  -> Rank Candidates
+  -> Deep Analysis
+  -> Generate Report
+  -> Human Feedback
+  -> END, or the next CLI message refines and reruns the search
+```
+
+The agent supports these deterministic intents:
+
+- `SEARCH`
+- `REFINE_REQUIREMENTS`
+- `COMPARE`
+- `EXPLAIN_RANKING`
+- `INTERVIEW_QUESTIONS`
+- `EXIT`
+
+Requirement extraction now separates:
+
+```python
+{
+  "role": "...",
+  "must_have_skills": [...],
+  "nice_to_have_skills": [...],
+  "min_experience_years": ...
+}
+```
+
+It reuses `job_matcher.extract_job_requirements()` for known technology
+detection, then classifies skills with deterministic wording such as required,
+mandatory, must have, preferred, nice to have, beneficial, and optional.
+
+Ranking remains deterministic and explainable. The LLM is used mainly for
+natural-language interpretation and synthesis and is not trusted to invent
+candidate scores.
+
+### Agent Tools
+
+- `extract_requirements(jd: str)` returns structured role, must-have skills,
+  nice-to-have skills, and minimum experience.
+- `compare_candidates(candidate_ids: list)` compares current shortlist
+  candidates with score, experience, matched skills, missing requirements,
+  eligibility, strengths, and gaps.
+- `generate_interview_questions(candidate_id: str)` creates candidate-specific
+  screening questions from matched strengths, missing requirements, experience,
+  and retrieved evidence. It has a deterministic template fallback and does not
+  require an API key.
+
+### Multi-Round Screening
+
+Round 1 uses the persisted Chroma index through `job_matcher.py` to return up to
+the top 10 candidates.
+
+Round 2 enriches each candidate with structured deep analysis:
+
+```python
+candidate_name
+strengths
+gaps
+matched_must_haves
+missing_must_haves
+matched_nice_to_haves
+experience_summary
+relevant_evidence
+risk_level
+```
+
+Round 3 applies deterministic recommendation labels:
+
+- `Strong Interview`
+- `Interview`
+- `Borderline`
+- `Do Not Progress`
+
+It also includes a normalized `hire_recommendation` field:
+
+- `hire`
+- `review`
+- `no_hire`
+
+### Iterative Refinement
+
+The CLI preserves state between turns. For example, after:
+
+```text
+Find React candidates with 3+ years experience
+```
+
+the follow-up:
+
+```text
+Make AWS mandatory
+```
+
+updates the existing requirements instead of starting from scratch. The previous
+shortlist is stored, candidates are reranked, and `ranking_changes` summarizes
+movement using actual matched/missing evidence.
+
+### Explainability
+
+Reports show rank, score, eligibility, matched must-haves, missing must-haves,
+nice-to-have matches, experience, retrieved evidence-based reasoning,
+recommendation, and screening suggestions for candidates with missing or weak
+evidence.
+
+### Run the CLI
+
+From the `llm-file-tools` directory:
+
+```powershell
+python matching_agent.py
+```
+
+One-shot mode is also supported:
+
+```powershell
+python matching_agent.py "Find candidates with React and 3+ years experience"
+```
+
+Only run `python resume_rag.py` if `chroma_db/` is missing or you changed files
+under `resumes/`.
+
+### Streamlit UI
+
+A lightweight chat UI is available in `app.py` and reuses the same
+`MatchingAgent` backend:
+
+```powershell
+streamlit run app.py
+```
+
+The sidebar lists the explicitly exposed tools, including the Milestone 1
+filesystem tools: `list_files`, `read_file`, `write_file`, and `search_in_file`.
+
+### Optional API Key
+
+No API key is required for core agent behavior. If you later add optional LLM
+synthesis, keep using `.env` and environment variables:
+
+```powershell
+OPENAI_API_KEY=...
+OPENAI_MODEL=gpt-4o-mini
+```
+
+Never commit `.env`, model caches, embeddings, or `chroma_db/`.
+
+### Demo Prompts
+
+```text
+Find me candidates with React and 3+ years experience
+Make AWS mandatory
+Compare the top 3
+Why did Jane React rank higher than Alex Frontend?
+Generate interview questions for the top candidate
+AWS is optional now, but PostgreSQL is mandatory
+```
+
+### Tests
+
+Run:
+
+```powershell
+python -m unittest tests.test_matching_agent -v
+```
+
+The same tests are pytest-compatible if you prefer:
+
+```powershell
+pytest tests/test_matching_agent.py
+```
+
+The tests mock the matcher so they do not require network calls, an OpenAI API
+key, or rebuilding Chroma.
+
+### State Machine Diagram
+
+See `docs/agent_architecture.md`.
+
