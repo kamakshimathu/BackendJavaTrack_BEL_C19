@@ -105,6 +105,17 @@ class MatchingAgentTests(unittest.TestCase):
         self.assertTrue(
             any("React" in question for question in questions["interview_questions"])
         )
+        self.assertEqual(
+            len(questions["interview_questions"]),
+            len(set(questions["interview_questions"])),
+        )
+
+    def test_exit_sets_goodbye_report(self):
+        state = self.agent.invoke("Find React candidates with 3+ years experience")
+
+        exited = self.agent.invoke("exit", state)
+
+        self.assertEqual(exited["report"], "Goodbye.")
 
     def test_optional_refinement_moves_skill_to_nice_to_have(self):
         state = self.agent.invoke("Find React and AWS candidates with 3+ years experience")

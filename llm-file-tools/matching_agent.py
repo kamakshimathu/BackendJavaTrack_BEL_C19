@@ -139,10 +139,18 @@ def generate_interview_questions(
             f"How have you applied {skill}, and what tradeoffs did you handle?"
         )
 
-    while len(questions) < 5:
-        questions.append(
-            "Which resume project best demonstrates your fit for this role, and what measurable outcome did you deliver?"
-        )
+    fallback_questions = [
+        "Which resume project best demonstrates your fit for this role, and what measurable outcome did you deliver?",
+        "Describe a technical decision from your recent work that you would make differently now.",
+        "What part of the role requirements would require the most ramp-up for you?",
+        "How do you validate quality when shipping changes in a production system?",
+        "Tell me about a cross-functional collaboration where you clarified ambiguous requirements.",
+    ]
+    for question in fallback_questions:
+        if len(questions) >= 5:
+            break
+        if question not in questions:
+            questions.append(question)
     return questions[:7]
 
 
@@ -236,6 +244,7 @@ def _build_graph():
     graph.add_node("compare_candidates", _compare_node)
     graph.add_node("explain_ranking", _explain_ranking_node)
     graph.add_node("interview_questions", _interview_questions_node)
+    graph.add_node("exit", _exit_node)
 
     graph.add_edge(START, "intent")
     graph.add_conditional_edges(
@@ -247,7 +256,7 @@ def _build_graph():
             "compare": "compare_candidates",
             "explain": "explain_ranking",
             "interview": "interview_questions",
-            "end": END,
+            "end": "exit",
         },
     )
     graph.add_edge("parse_jd", "extract_requirements")
@@ -264,6 +273,7 @@ def _build_graph():
     graph.add_edge("compare_candidates", END)
     graph.add_edge("explain_ranking", END)
     graph.add_edge("interview_questions", END)
+    graph.add_edge("exit", END)
     return graph.compile()
 
 
@@ -453,6 +463,11 @@ def _interview_questions_node(state: AgentState) -> AgentState:
     state["report"] = "Interview questions\n" + "\n".join(
         f"{index}. {question}" for index, question in enumerate(questions, start=1)
     )
+    return state
+
+
+def _exit_node(state: AgentState) -> AgentState:
+    state["report"] = "Goodbye."
     return state
 
 
