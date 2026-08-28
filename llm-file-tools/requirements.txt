@@ -14,5 +14,7 @@ langchain-text-splitters>=0.3.0
 langchain-huggingface>=0.1.0
 langchain-chroma>=0.1.0
 langchain-community>=0.3.0  # compatibility fallback for older LangChain installs
+langgraph>=0.2.0
 sentence-transformers>=3.0.0
 chromadb>=0.5.0
+streamlit>=1.36.0
