@@ -1,0 +1,25 @@
+Ben Carter
+DevOps Engineer
+Email: ben.carter@example.com | Phone: (555) 101-2012
+Location: Raleigh, NC
+
+SUMMARY
+DevOps engineer with 8 years of experience operating cloud platforms.
+Strong in AWS, Kubernetes, Terraform, Docker, CI/CD, and observability.
+
+SKILLS
+- Languages: Python, Bash
+- Cloud: AWS, Kubernetes, Docker
+- IaC: Terraform, Ansible
+- Observability: Prometheus, Grafana, Datadog
+
+EXPERIENCE
+Senior DevOps Engineer, CloudYard (2020 - Present)
+- Managed Kubernetes clusters and Terraform modules across AWS accounts.
+- Reduced deployment incidents by standardizing Docker images and CI/CD.
+
+Systems Engineer, BlueOps (2016 - 2020)
+- Automated Linux operations with Python and Bash.
+
+EDUCATION
+B.S. Information Technology, North Carolina State University, 2016

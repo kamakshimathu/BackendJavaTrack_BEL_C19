@@ -8,3 +8,11 @@ python-docx>=1.1.0    # read/write .docx resumes
 
 # Sample-data generation only (generate_sample_docs.py)
 reportlab>=4.0.0      # create .pdf sample resumes
+
+# Resume RAG ingestion / indexing
+langchain-text-splitters>=0.3.0
+langchain-huggingface>=0.1.0
+langchain-chroma>=0.1.0
+langchain-community>=0.3.0  # compatibility fallback for older LangChain installs
+sentence-transformers>=3.0.0
+chromadb>=0.5.0

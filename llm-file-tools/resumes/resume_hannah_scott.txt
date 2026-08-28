@@ -1,0 +1,25 @@
+Hannah Scott
+Analytics Engineer
+Email: hannah.scott@example.com | Phone: (555) 101-2009
+Location: Nashville, TN
+
+SUMMARY
+Analytics engineer with 5 years of experience building reliable data models.
+Strong SQL and dbt skills with Python automation and moderate AWS exposure.
+
+SKILLS
+- Languages: SQL, Python
+- Data: dbt, Airflow, Spark
+- Cloud: AWS S3, Snowflake
+- Analytics: Looker, Tableau
+
+EXPERIENCE
+Analytics Engineer, RevenueMap (2021 - Present)
+- Built dbt models for subscription revenue and product analytics.
+- Automated data validation jobs using Python and Airflow.
+
+BI Developer, NorthBridge Labs (2019 - 2021)
+- Created SQL dashboards and Snowflake data marts.
+
+EDUCATION
+B.S. Business Analytics, Belmont University, 2019

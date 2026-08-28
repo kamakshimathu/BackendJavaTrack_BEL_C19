@@ -1,0 +1,25 @@
+Raj Mehta
+Python Backend Engineer
+Email: raj.mehta@example.com | Phone: (555) 101-2002
+Location: Chicago, IL
+
+SUMMARY
+Backend engineer with 4 years of experience building internal platforms.
+Strong Python and PostgreSQL skills, with limited production cloud exposure.
+
+SKILLS
+- Languages: Python, SQL
+- Frameworks: FastAPI, Flask
+- Cloud: Docker, GitHub Actions
+- Databases: PostgreSQL, Redis
+
+EXPERIENCE
+Backend Engineer, MetricLane (2022 - Present)
+- Built FastAPI endpoints for analytics ingestion and reporting.
+- Improved PostgreSQL indexing for customer dashboards.
+
+Software Engineer, ShopGrid (2020 - 2022)
+- Maintained Flask services and Docker-based local development tooling.
+
+EDUCATION
+B.Tech Software Engineering, fictional Midwest Technical Institute, 2020

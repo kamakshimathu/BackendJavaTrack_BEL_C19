@@ -1,0 +1,25 @@
+Daniel Evans
+Platform Engineer
+Email: daniel.evans@example.com | Phone: (555) 101-2024
+Location: Madison, WI
+
+SUMMARY
+Platform engineer with 5 years of experience supporting Kubernetes and CI/CD.
+Strong in Docker, Kubernetes, Terraform, Python, and Azure, with some AWS project work.
+
+SKILLS
+- Languages: Python, Bash, Go
+- Cloud: Kubernetes, Docker, Azure, AWS
+- IaC: Terraform, Helm
+- Observability: Prometheus, Grafana
+
+EXPERIENCE
+Platform Engineer, LakeOps (2021 - Present)
+- Operated Kubernetes clusters and Terraform modules for application teams.
+- Built Docker image standards and deployment templates.
+
+DevOps Associate, DairyCloud (2019 - 2021)
+- Automated CI/CD workflows and monitoring dashboards.
+
+EDUCATION
+B.S. Computer Engineering, University of Wisconsin Madison, 2019

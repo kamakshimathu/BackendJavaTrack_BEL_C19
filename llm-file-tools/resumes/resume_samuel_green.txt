@@ -1,0 +1,25 @@
+Samuel Green
+Security Engineer
+Email: samuel.green@example.com | Phone: (555) 101-2014
+Location: Atlanta, GA
+
+SUMMARY
+Security engineer with 7 years of experience in cloud security and detection engineering.
+Strong in AWS security, Python automation, SIEM, and incident response.
+
+SKILLS
+- Languages: Python, PowerShell, SQL
+- Security: SIEM, Splunk, IAM, GuardDuty
+- Cloud: AWS, Docker
+- Frameworks: MITRE ATT&CK, NIST CSF
+
+EXPERIENCE
+Security Engineer, ShieldPath (2020 - Present)
+- Built Python automation for AWS alert enrichment and incident triage.
+- Improved SIEM detections for identity and container threats.
+
+SOC Engineer, RedWall (2017 - 2020)
+- Tuned Splunk rules and supported incident response exercises.
+
+EDUCATION
+B.S. Cybersecurity, Georgia State University, 2017

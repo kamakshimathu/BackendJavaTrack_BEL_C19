@@ -1,0 +1,25 @@
+Victor Hughes
+Software Engineer
+Email: victor.hughes@example.com | Phone: (555) 101-2026
+Location: Tampa, FL
+
+SUMMARY
+Software engineer with 4 years of experience across Java services and React features.
+Comfortable with Spring Boot, TypeScript, PostgreSQL, and Docker.
+
+SKILLS
+- Languages: Java, TypeScript, SQL
+- Frameworks: Spring Boot, React, Node.js
+- Cloud: Docker, AWS
+- Databases: PostgreSQL, MySQL
+
+EXPERIENCE
+Software Engineer, PolicyBase (2021 - Present)
+- Built Spring Boot APIs and React dashboards for insurance teams.
+- Maintained PostgreSQL schemas and Docker deployment scripts.
+
+Junior Developer, CivicApps (2020 - 2021)
+- Added TypeScript UI features and Java bug fixes.
+
+EDUCATION
+B.S. Computer Science, University of South Florida, 2020

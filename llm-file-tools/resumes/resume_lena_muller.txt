@@ -1,0 +1,25 @@
+Lena Muller
+AI Engineer
+Email: lena.muller@example.com | Phone: (555) 101-2011
+Location: Austin, TX
+
+SUMMARY
+AI engineer with 5 years of experience building LLM and retrieval applications.
+Strong Python, FastAPI, Docker, and AWS skills with practical PyTorch experience.
+
+SKILLS
+- Languages: Python, SQL
+- AI: PyTorch, LangChain, Hugging Face Transformers
+- Serving: FastAPI, Docker
+- Cloud: AWS, PostgreSQL
+
+EXPERIENCE
+AI Engineer, DocuMind (2022 - Present)
+- Built retrieval augmented generation services using Python and FastAPI.
+- Deployed embedding workflows with Docker and PostgreSQL metadata storage.
+
+ML Developer, ScriptLab (2019 - 2022)
+- Built PyTorch classifiers and evaluation pipelines.
+
+EDUCATION
+M.S. Computer Science, University of Texas at Austin, 2019

@@ -1,0 +1,25 @@
+Isabella Romero
+AI Backend Engineer
+Email: isabella.romero@example.com | Phone: (555) 101-2025
+Location: Mexico City, MX
+
+SUMMARY
+Backend and AI engineer with 6 years of experience building Python services.
+Strong in FastAPI, PostgreSQL, Docker, AWS, and LLM application infrastructure.
+
+SKILLS
+- Languages: Python, SQL, TypeScript
+- Frameworks: FastAPI, Django, React
+- AI: LangChain, Hugging Face Transformers, PyTorch
+- Cloud: AWS, Docker, PostgreSQL
+
+EXPERIENCE
+AI Backend Engineer, Assistly (2021 - Present)
+- Built FastAPI services for document search and chat workflows.
+- Stored metadata in PostgreSQL and deployed Docker services on AWS.
+
+Backend Developer, MercadoSoft (2018 - 2021)
+- Built Django APIs and internal React admin screens.
+
+EDUCATION
+B.S. Computer Systems, fictional Universidad Central, 2018

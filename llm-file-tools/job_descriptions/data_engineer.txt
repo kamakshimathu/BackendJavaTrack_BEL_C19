@@ -1,0 +1,5 @@
+Data Engineer
+
+We are hiring a data engineer with 4+ years experience building reliable data pipelines.
+The role requires Python, SQL, Spark, and AWS.
+Experience with orchestration, streaming data, warehouse modeling, and data quality checks is valuable.

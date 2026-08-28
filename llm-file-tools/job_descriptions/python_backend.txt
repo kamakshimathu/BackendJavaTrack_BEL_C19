@@ -1,0 +1,5 @@
+Senior Python Backend Engineer
+
+We are hiring a senior backend engineer with 5+ years experience building production APIs.
+The role requires Python, FastAPI, AWS, PostgreSQL, Docker, and strong service ownership.
+Experience with distributed systems, observability, and service reliability is helpful.

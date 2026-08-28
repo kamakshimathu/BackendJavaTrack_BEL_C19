@@ -1,0 +1,25 @@
+Oliver Brown
+Full Stack Engineer
+Email: oliver.brown@example.com | Phone: (555) 101-2005
+Location: Portland, OR
+
+SUMMARY
+Full stack engineer with 6 years of experience shipping B2B SaaS applications.
+Strong across React, TypeScript, Node.js, PostgreSQL, and AWS.
+
+SKILLS
+- Languages: TypeScript, JavaScript, SQL
+- Frameworks: React, Node.js, Express, Next.js
+- Cloud: AWS, Docker
+- Databases: PostgreSQL, Redis
+
+EXPERIENCE
+Full Stack Engineer, AtlasCRM (2020 - Present)
+- Built React and TypeScript workflows for sales operations teams.
+- Developed Node.js APIs backed by PostgreSQL and deployed on AWS.
+
+Frontend Engineer, BrightDesk (2018 - 2020)
+- Shipped reusable React components and improved accessibility.
+
+EDUCATION
+B.S. Software Engineering, Oregon State University, 2018

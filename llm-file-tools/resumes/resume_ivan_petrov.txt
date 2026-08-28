@@ -1,0 +1,25 @@
+Ivan Petrov
+Machine Learning Engineer
+Email: ivan.petrov@example.com | Phone: (555) 101-2010
+Location: Remote
+
+SUMMARY
+Machine learning engineer with 6 years of experience productionizing models.
+Strong in Python, PyTorch, Docker, AWS, and model serving APIs.
+
+SKILLS
+- Languages: Python, SQL
+- ML: PyTorch, scikit-learn, TensorFlow
+- Serving: FastAPI, Docker, Kubernetes
+- Cloud: AWS SageMaker, AWS Lambda
+
+EXPERIENCE
+Machine Learning Engineer, VisionForge (2021 - Present)
+- Deployed PyTorch models with FastAPI and Docker on AWS.
+- Improved image model inference latency by 45%.
+
+Data Scientist, Predictly (2018 - 2021)
+- Built Python models for churn and recommendation use cases.
+
+EDUCATION
+M.S. Machine Learning, fictional Pacific Technical University, 2018

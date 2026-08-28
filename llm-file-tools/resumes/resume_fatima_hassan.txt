@@ -1,0 +1,25 @@
+Fatima Hassan
+Data Scientist
+Email: fatima.hassan@example.com | Phone: (555) 101-2019
+Location: Philadelphia, PA
+
+SUMMARY
+Data scientist with 5 years of experience building predictive models and experiments.
+Strong in Python, SQL, scikit-learn, PyTorch, and product analytics.
+
+SKILLS
+- Languages: Python, SQL, R
+- ML: scikit-learn, PyTorch, XGBoost
+- Data: pandas, NumPy, Spark
+- Analytics: Tableau, experimentation
+
+EXPERIENCE
+Data Scientist, TrialPath (2021 - Present)
+- Built Python models for trial enrollment forecasting.
+- Used SQL and Spark to prepare modeling datasets.
+
+Data Analyst, MarketSeed (2019 - 2021)
+- Created dashboards and A/B test analyses for growth teams.
+
+EDUCATION
+M.S. Applied Statistics, Temple University, 2019

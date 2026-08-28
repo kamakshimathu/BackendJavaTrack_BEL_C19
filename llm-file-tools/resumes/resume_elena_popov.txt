@@ -1,0 +1,25 @@
+Elena Popov
+Data Platform Engineer
+Email: elena.popov@example.com | Phone: (555) 101-2021
+Location: Salt Lake City, UT
+
+SUMMARY
+Data platform engineer with 8 years of experience building cloud data systems.
+Strong in Python, SQL, Spark, Kafka, AWS, Docker, and Terraform.
+
+SKILLS
+- Languages: Python, SQL, Java
+- Data: Spark, Kafka, Airflow, dbt
+- Cloud: AWS, Docker, Terraform
+- Databases: PostgreSQL, Redshift
+
+EXPERIENCE
+Senior Data Platform Engineer, PeakMetrics (2020 - Present)
+- Built Spark and Kafka pipelines on AWS for product telemetry.
+- Standardized Terraform modules for data platform infrastructure.
+
+Data Engineer, SignalWorks (2016 - 2020)
+- Built Python ETL jobs and PostgreSQL reporting datasets.
+
+EDUCATION
+B.S. Computer Science, University of Utah, 2016

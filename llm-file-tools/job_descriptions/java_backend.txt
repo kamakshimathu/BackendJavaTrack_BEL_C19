@@ -1,0 +1,5 @@
+Senior Java Backend Engineer
+
+We need a senior backend engineer with 5+ years experience building Java services.
+The role requires Java, Spring Boot, AWS, PostgreSQL, and reliable API design.
+Experience with cloud operations, testing, and resilient service design is valuable.

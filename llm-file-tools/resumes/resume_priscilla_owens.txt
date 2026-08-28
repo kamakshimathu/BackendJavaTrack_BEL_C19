@@ -1,0 +1,25 @@
+Priscilla Owens
+Full Stack Developer
+Email: priscilla.owens@example.com | Phone: (555) 101-2023
+Location: Charlotte, NC
+
+SUMMARY
+Full stack developer with 4 years of experience on customer portals and APIs.
+Strong in React, TypeScript, Node.js, PostgreSQL, and Docker with limited AWS exposure.
+
+SKILLS
+- Languages: TypeScript, JavaScript, SQL
+- Frameworks: React, Node.js, Express
+- Cloud: Docker, AWS S3
+- Databases: PostgreSQL, MongoDB
+
+EXPERIENCE
+Full Stack Developer, CarePortal (2022 - Present)
+- Built React and TypeScript screens for healthcare enrollment.
+- Developed Node.js APIs backed by PostgreSQL.
+
+Web Developer, LocalTech (2020 - 2022)
+- Maintained JavaScript applications and Docker development tooling.
+
+EDUCATION
+B.S. Information Technology, UNC Charlotte, 2020
