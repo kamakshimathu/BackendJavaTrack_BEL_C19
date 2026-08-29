@@ -11,7 +11,7 @@ import argparse
 import re
 from typing import Any, Literal, TypedDict
 
-import fs_tools
+from filesystem_mcp_client import FilesystemMCPClientError, SyncFilesystemMCPClient
 from job_matcher import (
     DEFAULT_TOP_K_CANDIDATES,
     SKILL_ALIASES,
@@ -154,8 +154,25 @@ def generate_interview_questions(
     return questions[:7]
 
 
+FILESYSTEM_TOOL_NAMES = (
+    "read_file",
+    "list_files",
+    "write_file",
+    "search_in_file",
+)
+
+_filesystem_mcp_client: SyncFilesystemMCPClient | None = None
+
+
+def _filesystem_tool_proxy(tool_name: str):
+    def _proxy(**kwargs: Any) -> Any:
+        return call_filesystem_tool(tool_name, **kwargs)
+
+    return _proxy
+
+
 AGENT_TOOLS = {
-    **fs_tools.TOOLS,
+    **{name: _filesystem_tool_proxy(name) for name in FILESYSTEM_TOOL_NAMES},
     "extract_requirements": extract_requirements,
     "compare_candidates": compare_candidates,
     "generate_interview_questions": generate_interview_questions,
@@ -168,24 +185,53 @@ def available_agent_tools() -> list[str]:
 
 
 def call_filesystem_tool(tool_name: str, **kwargs: Any) -> Any:
-    """Safely dispatch one of the Milestone 1 filesystem tools by name.
+    """Dispatch one filesystem tool through the local MCP filesystem server.
 
     The conversational matching flow does not need to call these on every turn,
     but exposing this dispatcher makes the Milestone 1 tool layer explicitly
     available to the LangGraph agent backend and easy to demonstrate.
     """
-    if tool_name not in fs_tools.TOOLS:
+    if tool_name not in FILESYSTEM_TOOL_NAMES:
         return {
             "success": False,
             "error": (
                 f"Unknown filesystem tool: {tool_name}. "
-                f"Available filesystem tools: {', '.join(sorted(fs_tools.TOOLS))}"
+                f"Available filesystem tools: {', '.join(sorted(FILESYSTEM_TOOL_NAMES))}"
             ),
         }
     try:
-        return fs_tools.TOOLS[tool_name](**kwargs)
+        client = _get_filesystem_mcp_client()
+        available_tools = client.list_tools()
+        if tool_name not in available_tools:
+            return {
+                "success": False,
+                "error": (
+                    f"Filesystem MCP tool unavailable: {tool_name}. "
+                    f"Available MCP tools: {', '.join(sorted(available_tools))}"
+                ),
+            }
+        return client.call_tool(tool_name, kwargs)
     except TypeError as exc:
         return {"success": False, "error": f"Invalid arguments for {tool_name}: {exc}"}
+    except FilesystemMCPClientError as exc:
+        return {"success": False, "error": f"MCP filesystem error: {exc}"}
+    except Exception as exc:
+        return {"success": False, "error": f"Unexpected MCP filesystem error: {exc}"}
+
+
+def _get_filesystem_mcp_client() -> SyncFilesystemMCPClient:
+    global _filesystem_mcp_client
+    if _filesystem_mcp_client is None:
+        _filesystem_mcp_client = SyncFilesystemMCPClient()
+    return _filesystem_mcp_client
+
+
+def close_filesystem_mcp_client() -> None:
+    """Close the lazily-created filesystem MCP client, if it exists."""
+    global _filesystem_mcp_client
+    if _filesystem_mcp_client is not None:
+        _filesystem_mcp_client.close()
+        _filesystem_mcp_client = None
 
 
 class MatchingAgent:
