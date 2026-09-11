@@ -438,3 +438,380 @@ It demonstrates:
 - There is no production-scale ANN tuning.
 - Local embedding model cold-start can add noticeable latency.
 
+---
+
+## Milestone 3: LangGraph Conversational Matching Agent
+
+Implemented in `matching_agent.py`.
+
+The Milestone 3 agent wraps the existing Milestone 2 matcher in a LangGraph
+state machine. It does not rebuild the RAG pipeline and does not replace the
+deterministic ranking formula. The graph tracks:
+
+```python
+messages
+raw_query
+job_description
+requirements
+candidate_shortlist
+previous_candidate_shortlist
+deep_analysis
+report
+human_feedback
+ranking_changes
+current_intent
+```
+
+Workflow:
+
+```text
+START
+  -> Intent
+  -> Parse JD / Extract Requirements
+  -> Search Resumes with existing Chroma index
+  -> Rank Candidates
+  -> Deep Analysis
+  -> Generate Report
+  -> Human Feedback
+  -> END, or the next CLI message refines and reruns the search
+```
+
+The agent supports these deterministic intents:
+
+- `SEARCH`
+- `REFINE_REQUIREMENTS`
+- `COMPARE`
+- `EXPLAIN_RANKING`
+- `INTERVIEW_QUESTIONS`
+- `EXIT`
+
+Requirement extraction now separates:
+
+```python
+{
+  "role": "...",
+  "must_have_skills": [...],
+  "nice_to_have_skills": [...],
+  "min_experience_years": ...
+}
+```
+
+It reuses `job_matcher.extract_job_requirements()` for known technology
+detection, then classifies skills with deterministic wording such as required,
+mandatory, must have, preferred, nice to have, beneficial, and optional.
+
+Ranking remains deterministic and explainable. The LLM is used mainly for
+natural-language interpretation and synthesis and is not trusted to invent
+candidate scores.
+
+### Agent Tools
+
+- `extract_requirements(jd: str)` returns structured role, must-have skills,
+  nice-to-have skills, and minimum experience.
+- `compare_candidates(candidate_ids: list)` compares current shortlist
+  candidates with score, experience, matched skills, missing requirements,
+  eligibility, strengths, and gaps.
+- `generate_interview_questions(candidate_id: str)` creates candidate-specific
+  screening questions from matched strengths, missing requirements, experience,
+  and retrieved evidence. It has a deterministic template fallback and does not
+  require an API key.
+
+### Multi-Round Screening
+
+Round 1 uses the persisted Chroma index through `job_matcher.py` to return up to
+the top 10 candidates.
+
+Round 2 enriches each candidate with structured deep analysis:
+
+```python
+candidate_name
+strengths
+gaps
+matched_must_haves
+missing_must_haves
+matched_nice_to_haves
+experience_summary
+relevant_evidence
+risk_level
+```
+
+Round 3 applies deterministic recommendation labels:
+
+- `Strong Interview`
+- `Interview`
+- `Borderline`
+- `Do Not Progress`
+
+It also includes a normalized `hire_recommendation` field:
+
+- `hire`
+- `review`
+- `no_hire`
+
+### Iterative Refinement
+
+The CLI preserves state between turns. For example, after:
+
+```text
+Find React candidates with 3+ years experience
+```
+
+the follow-up:
+
+```text
+Make AWS mandatory
+```
+
+updates the existing requirements instead of starting from scratch. The previous
+shortlist is stored, candidates are reranked, and `ranking_changes` summarizes
+movement using actual matched/missing evidence.
+
+### Explainability
+
+Reports show rank, score, eligibility, matched must-haves, missing must-haves,
+nice-to-have matches, experience, retrieved evidence-based reasoning,
+recommendation, and screening suggestions for candidates with missing or weak
+evidence.
+
+### Run the CLI
+
+From the `llm-file-tools` directory:
+
+```powershell
+python matching_agent.py
+```
+
+One-shot mode is also supported:
+
+```powershell
+python matching_agent.py "Find candidates with React and 3+ years experience"
+```
+
+Only run `python resume_rag.py` if `chroma_db/` is missing or you changed files
+under `resumes/`.
+
+### Streamlit UI
+
+A lightweight chat UI is available in `app.py` and reuses the same
+`MatchingAgent` backend:
+
+```powershell
+streamlit run app.py
+```
+
+The sidebar lists the explicitly exposed tools, including the Milestone 1
+filesystem tools: `list_files`, `read_file`, `write_file`, and `search_in_file`.
+
+### Optional API Key
+
+No API key is required for core agent behavior. If you later add optional LLM
+synthesis, keep using `.env` and environment variables:
+
+```powershell
+OPENAI_API_KEY=...
+OPENAI_MODEL=gpt-4o-mini
+```
+
+Never commit `.env`, model caches, embeddings, or `chroma_db/`.
+
+### Demo Prompts
+
+```text
+Find me candidates with React and 3+ years experience
+Make AWS mandatory
+Compare the top 3
+Why did Jane React rank higher than Alex Frontend?
+Generate interview questions for the top candidate
+AWS is optional now, but PostgreSQL is mandatory
+```
+
+### Tests
+
+Run:
+
+```powershell
+python -m unittest tests.test_matching_agent -v
+```
+
+The same tests are pytest-compatible if you prefer:
+
+```powershell
+pytest tests/test_matching_agent.py
+```
+
+The tests mock the matcher so they do not require network calls, an OpenAI API
+key, or rebuilding Chroma.
+
+### State Machine Diagram
+
+See `docs/agent_architecture.md`.
+
+---
+
+## Milestone 4: MCP Filesystem Server
+
+Milestone 4 replaces the agent's direct filesystem tool access with a standard
+Model Context Protocol boundary. The existing LangGraph workflow still owns
+reasoning, state transitions, candidate ranking, refinement, comparison,
+ranking explanations, interview questions, and exit behavior. The filesystem
+tools now flow through:
+
+```text
+matching_agent.py
+  -> SyncFilesystemMCPClient
+  -> MCP stdio / JSON-RPC
+  -> filesystem_mcp_server.py
+  -> security/path validation
+  -> fs_tools.py
+```
+
+The candidate search path remains unchanged:
+
+```text
+matching_agent.py -> job_matcher.py -> RAG / ChromaDB
+```
+
+See `docs/mcp_architecture.md` for the workflow diagram, tool/resource details,
+security model, and assignment requirement checklist.
+
+### MCP Setup
+
+Install dependencies:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+MCP configuration lives in `.env.example`:
+
+```powershell
+FILESYSTEM_MCP_ROOT=.
+FILESYSTEM_MCP_ALLOW_WRITE=false
+FILESYSTEM_MCP_MAX_FILE_BYTES=5000000
+FILESYSTEM_MCP_MAX_BATCH_FILES=50
+FILESYSTEM_MCP_WATCH_MAX_SECONDS=30
+FILESYSTEM_MCP_TRANSPORT=stdio
+```
+
+Safe defaults:
+
+- `FILESYSTEM_MCP_ROOT=.` scopes access to the project folder when launched
+  from `llm-file-tools`.
+- Writes are disabled unless `FILESYSTEM_MCP_ALLOW_WRITE=true`.
+- Reads/searches enforce a file-size limit.
+- Paths are normalized and rejected if they traverse outside the configured root.
+
+### MCP Server Verification
+
+Verify tool and resource discovery through the SDK:
+
+```powershell
+python -c "import asyncio, filesystem_mcp_server as s; print([tool.name for tool in asyncio.run(s.server.list_tools())]); print([str(resource.uri) for resource in asyncio.run(s.server.list_resources())])"
+```
+
+Expected tools:
+
+```text
+read_file, list_files, write_file, search_in_file, watch_directory, batch_process
+```
+
+Expected resources:
+
+```text
+filesystem://root, filesystem://files
+```
+
+### MCP Client Example
+
+```powershell
+python demo_mcp.py
+```
+
+### Assignment-Specific MCP Tools
+
+`watch_directory` performs bounded polling:
+
+```python
+watch_directory(
+    directory=".",
+    duration_seconds=5.0,
+    interval_seconds=0.5,
+    extension=None,
+    recursive=False,
+)
+```
+
+It returns created, modified, and deleted files using paths relative to
+`FILESYSTEM_MCP_ROOT`. The duration is capped by
+`FILESYSTEM_MCP_WATCH_MAX_SECONDS`.
+
+`batch_process` processes several files in one MCP call:
+
+```python
+batch_process(
+    operation="read",  # read, search, metadata, or list
+    directory="resumes",
+    extension=".txt",
+    keyword=None,
+    max_files=None,
+    continue_on_error=True,
+)
+```
+
+Each item has its own result. If one item fails and `continue_on_error=True`,
+the response reports `partial_success=True` and includes both successful and
+failed item results.
+
+### MCP Test Commands
+
+Run the focused MCP and agent suites:
+
+```powershell
+python -m unittest tests.test_filesystem_mcp_server
+python -m unittest tests.test_filesystem_mcp_client
+python -m unittest tests.test_matching_agent
+python -m unittest tests.test_mcp_agent_integration
+python -m unittest discover -s tests
+```
+
+Syntax-check the MCP files:
+
+```powershell
+python -m py_compile filesystem_mcp_server.py filesystem_mcp_client.py demo_mcp.py tests\test_filesystem_mcp_server.py tests\test_filesystem_mcp_client.py tests\test_mcp_agent_integration.py
+```
+
+### Demo-Friendly Verification
+
+These commands avoid internet access.
+
+1. Show six MCP tools and two resources:
+
+   ```powershell
+   python demo_mcp.py
+   ```
+
+2. Prove `matching_agent` filesystem access goes through MCP:
+
+   ```powershell
+   python -c "import matching_agent; print('has fs_tools:', hasattr(matching_agent, 'fs_tools')); print(matching_agent.call_filesystem_tool('list_files', directory='resumes', extension='.txt')['count']); matching_agent.close_filesystem_mcp_client()"
+   ```
+
+3. Run integration tests:
+
+   ```powershell
+   python -m unittest tests.test_mcp_agent_integration
+   ```
+
+4. Run existing candidate matching if the local Chroma index and Hugging Face
+   embedding model cache are already available:
+
+   ```powershell
+   python job_matcher.py "Senior backend engineer with 5+ years experience in Python, FastAPI, AWS, PostgreSQL and Kubernetes"
+   ```
+
+   If the model is cached and the environment is offline, set:
+
+   ```powershell
+   $env:HF_HUB_OFFLINE = "1"
+   ```
+
