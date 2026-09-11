@@ -646,3 +646,172 @@ key, or rebuilding Chroma.
 
 See `docs/agent_architecture.md`.
 
+---
+
+## Milestone 4: MCP Filesystem Server
+
+Milestone 4 replaces the agent's direct filesystem tool access with a standard
+Model Context Protocol boundary. The existing LangGraph workflow still owns
+reasoning, state transitions, candidate ranking, refinement, comparison,
+ranking explanations, interview questions, and exit behavior. The filesystem
+tools now flow through:
+
+```text
+matching_agent.py
+  -> SyncFilesystemMCPClient
+  -> MCP stdio / JSON-RPC
+  -> filesystem_mcp_server.py
+  -> security/path validation
+  -> fs_tools.py
+```
+
+The candidate search path remains unchanged:
+
+```text
+matching_agent.py -> job_matcher.py -> RAG / ChromaDB
+```
+
+See `docs/mcp_architecture.md` for the workflow diagram, tool/resource details,
+security model, and assignment requirement checklist.
+
+### MCP Setup
+
+Install dependencies:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+MCP configuration lives in `.env.example`:
+
+```powershell
+FILESYSTEM_MCP_ROOT=.
+FILESYSTEM_MCP_ALLOW_WRITE=false
+FILESYSTEM_MCP_MAX_FILE_BYTES=5000000
+FILESYSTEM_MCP_MAX_BATCH_FILES=50
+FILESYSTEM_MCP_WATCH_MAX_SECONDS=30
+FILESYSTEM_MCP_TRANSPORT=stdio
+```
+
+Safe defaults:
+
+- `FILESYSTEM_MCP_ROOT=.` scopes access to the project folder when launched
+  from `llm-file-tools`.
+- Writes are disabled unless `FILESYSTEM_MCP_ALLOW_WRITE=true`.
+- Reads/searches enforce a file-size limit.
+- Paths are normalized and rejected if they traverse outside the configured root.
+
+### MCP Server Verification
+
+Verify tool and resource discovery through the SDK:
+
+```powershell
+python -c "import asyncio, filesystem_mcp_server as s; print([tool.name for tool in asyncio.run(s.server.list_tools())]); print([str(resource.uri) for resource in asyncio.run(s.server.list_resources())])"
+```
+
+Expected tools:
+
+```text
+read_file, list_files, write_file, search_in_file, watch_directory, batch_process
+```
+
+Expected resources:
+
+```text
+filesystem://root, filesystem://files
+```
+
+### MCP Client Example
+
+```powershell
+python demo_mcp.py
+```
+
+### Assignment-Specific MCP Tools
+
+`watch_directory` performs bounded polling:
+
+```python
+watch_directory(
+    directory=".",
+    duration_seconds=5.0,
+    interval_seconds=0.5,
+    extension=None,
+    recursive=False,
+)
+```
+
+It returns created, modified, and deleted files using paths relative to
+`FILESYSTEM_MCP_ROOT`. The duration is capped by
+`FILESYSTEM_MCP_WATCH_MAX_SECONDS`.
+
+`batch_process` processes several files in one MCP call:
+
+```python
+batch_process(
+    operation="read",  # read, search, metadata, or list
+    directory="resumes",
+    extension=".txt",
+    keyword=None,
+    max_files=None,
+    continue_on_error=True,
+)
+```
+
+Each item has its own result. If one item fails and `continue_on_error=True`,
+the response reports `partial_success=True` and includes both successful and
+failed item results.
+
+### MCP Test Commands
+
+Run the focused MCP and agent suites:
+
+```powershell
+python -m unittest tests.test_filesystem_mcp_server
+python -m unittest tests.test_filesystem_mcp_client
+python -m unittest tests.test_matching_agent
+python -m unittest tests.test_mcp_agent_integration
+python -m unittest discover -s tests
+```
+
+Syntax-check the MCP files:
+
+```powershell
+python -m py_compile filesystem_mcp_server.py filesystem_mcp_client.py demo_mcp.py tests\test_filesystem_mcp_server.py tests\test_filesystem_mcp_client.py tests\test_mcp_agent_integration.py
+```
+
+### Demo-Friendly Verification
+
+These commands avoid internet access.
+
+1. Show six MCP tools and two resources:
+
+   ```powershell
+   python demo_mcp.py
+   ```
+
+2. Prove `matching_agent` filesystem access goes through MCP:
+
+   ```powershell
+   python -c "import matching_agent; print('has fs_tools:', hasattr(matching_agent, 'fs_tools')); print(matching_agent.call_filesystem_tool('list_files', directory='resumes', extension='.txt')['count']); matching_agent.close_filesystem_mcp_client()"
+   ```
+
+3. Run integration tests:
+
+   ```powershell
+   python -m unittest tests.test_mcp_agent_integration
+   ```
+
+4. Run existing candidate matching if the local Chroma index and Hugging Face
+   embedding model cache are already available:
+
+   ```powershell
+   python job_matcher.py "Senior backend engineer with 5+ years experience in Python, FastAPI, AWS, PostgreSQL and Kubernetes"
+   ```
+
+   If the model is cached and the environment is offline, set:
+
+   ```powershell
+   $env:HF_HUB_OFFLINE = "1"
+   ```
+
