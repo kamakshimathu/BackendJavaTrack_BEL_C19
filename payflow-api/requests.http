@@ -1,0 +1,63 @@
+### Create Priya Sharma's account
+POST http://localhost:8080/users
+Content-Type: application/json
+
+{
+  "name": "Priya Sharma",
+  "upiId": "priya@okaxis",
+  "balance": 5000.0,
+  "phoneNumber": "9876543210"
+}
+
+### Create Rahul
+POST http://localhost:8080/users
+Content-Type: application/json
+
+{
+  "name": "Rahul Verma",
+  "upiId": "rahul@ybl",
+  "balance": 3000.0,
+  "phoneNumber": "9123456780"
+}
+
+### Get all users
+GET http://localhost:8080/users
+
+### Get user by ID
+GET http://localhost:8080/users/1
+
+### Get user by UPI
+GET http://localhost:8080/users/upi/rahul@ybl
+
+### Create transaction
+POST http://localhost:8080/transactions
+Content-Type: application/json
+
+{
+  "senderUpiId": "priya@okaxis",
+  "receiverUpiId": "rahul@ybl",
+  "amount": 500.0,
+  "note": "dinner split"
+}
+
+### Test request body logging with @RequestBody
+POST http://localhost:8080/users
+Content-Type: application/json
+
+{
+  "name": "Request Body Test",
+  "upiId": "requestbody@test",
+  "balance": 1000.0,
+  "phoneNumber": "9000000000"
+}
+
+### Test request body logging without @RequestBody
+POST http://localhost:8080/users
+Content-Type: application/json
+
+{
+  "name": "Without RequestBody Test",
+  "upiId": "withoutrequestbody@test",
+  "balance": 2000.0,
+  "phoneNumber": "9111111111"
+}
