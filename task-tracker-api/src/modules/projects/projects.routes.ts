@@ -3,6 +3,7 @@ import { authenticate, type AuthLocals } from '../../middleware/authenticate.js'
 import { createDetailsSchema, updateDetailsSchema, emptyQuerySchema, paginationSchema,
   projectParamsSchema, teamParamsSchema } from '../../shared/request-schemas.js';
 import * as projects from './projects.service.js';
+import { projectTasksRouter } from '../tasks/tasks.routes.js';
 
 export const teamProjectsRouter = Router({ mergeParams: true });
 teamProjectsRouter.post('/', async (req, res: Response<unknown, AuthLocals>) => {
@@ -28,3 +29,4 @@ projectsRouter.patch('/:projectId', async (req, res: Response<unknown, AuthLocal
   emptyQuerySchema.parse(req.query);
   res.json({ project: await projects.updateProject(res.locals.user.id, projectId, updateDetailsSchema.parse(req.body)) });
 });
+projectsRouter.use('/:projectId/tasks', projectTasksRouter);

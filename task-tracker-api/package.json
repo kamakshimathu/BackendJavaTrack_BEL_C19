@@ -1,7 +1,7 @@
 {
   "name": "task-tracker-api",
   "version": "1.0.0",
-  "description": "Task Tracking and Team Collaboration REST API - Milestone 3",
+  "description": "Task Tracking and Team Collaboration REST API - Milestone 4",
   "private": true,
   "main": "dist/server.js",
   "engines": {
@@ -10,8 +10,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "typecheck": "tsc --noEmit && tsc --project tsconfig.prisma.json && tsc --project tsconfig.tests.json",
-    "test": "node --import tsx --test tests/security.test.ts tests/auth.integration.test.ts tests/collaboration.integration.test.ts",
-    "test:integration": "node --import tsx --test tests/auth.integration.test.ts tests/collaboration.integration.test.ts",
+    "test": "node --import tsx --test tests/security.test.ts tests/auth.integration.test.ts tests/collaboration.integration.test.ts tests/tasks.integration.test.ts",
+    "test:integration": "node --import tsx --test tests/auth.integration.test.ts tests/collaboration.integration.test.ts tests/tasks.integration.test.ts",
     "test:db:migrate": "node scripts/migrate-test-database.mjs",
     "build": "npm run prisma:generate && tsc",
     "start": "node dist/server.js",

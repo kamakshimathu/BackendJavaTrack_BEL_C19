@@ -67,6 +67,8 @@ export function removeMember(actorId: string, teamId: string, userId: string): P
     const self = actor.role === 'MEMBER' && actorId === userId;
     const permitted = actor.role === 'OWNER' || self || (actor.role === 'ADMIN' && target.role === 'MEMBER');
     if (!permitted) throw new AppError(403, 'Insufficient team permissions');
+    // Assignment and removal take the same team lock; clear only this team's work.
+    await tx.task.updateMany({ where: { assignedToId: userId, project: { teamId } }, data: { assignedToId: null } });
     await tx.teamMember.delete({ where: { id: target.id } });
   });
 }

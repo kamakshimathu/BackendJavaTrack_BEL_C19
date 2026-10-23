@@ -1,6 +1,6 @@
 # Task Tracker API
 
-Milestone 3: teams, membership, invitations, projects, and role-based authorization, preserving the authentication and project foundation. No tasks, comments, attachments, notifications, or AI features.
+Milestone 4: task management, assignment, search, filtering, sorting, and pagination, preserving authentication, teams, invitations, and projects. No comments, attachments, notifications, WebSockets, or AI features.
 
 ## Stack and configuration
 
@@ -14,8 +14,8 @@ Milestone 3: teams, membership, invitations, projects, and role-based authorizat
 
 ```text
 prisma/
-  schema.prisma              # Users, refresh sessions, teams, invitations, projects
-  migrations/                # Forward-only foundation/auth/collaboration migrations
+  schema.prisma              # Users, sessions, teams, invitations, projects, tasks
+  migrations/                # Forward-only foundation/auth/collaboration/task migrations
 prisma.config.ts             # Prisma CLI configuration
 src/
   config/
@@ -33,6 +33,7 @@ src/
     teams/                   # Team routes, membership rules, transaction helpers
     invitations/             # Invite creation, listing, accept/decline
     projects/                # Team-scoped project access
+    tasks/                   # Task schemas, routes, permission/assignment services
   shared/app-error.ts        # Expected application errors
   shared/request-schemas.ts  # Strict UUID/body/query validation and pagination
   app.ts                     # Express middleware and routes
@@ -71,7 +72,7 @@ npm.cmd run prisma:generate
 npm.cmd run typecheck
 npm.cmd run prisma:validate
 # Review pending migration SQL, including:
-# prisma/migrations/20261024000200_teams_invitations_projects/migration.sql
+# prisma/migrations/20261024000300_task_management/migration.sql
 # Apply the already generated forward migration to the confirmed target:
 npm.cmd run prisma:migrate:deploy
 # Prisma 7 migrations do not generate the client automatically:
@@ -110,6 +111,8 @@ CLI configuration permits an absent DATABASE_URL for offline client generation. 
 During Milestone 2 the existing database was inspected read-only and had zero User rows. The authentication migration adds required `passwordHash` without a default, creates RefreshSession, and runs in a transaction. It does not reset tables or invent passwords. If legacy User rows exist when you apply that migration, PostgreSQL rejects the required column and rolls back. Stop and plan a staged nullable-column/account-enrollment migration; do not delete users or accept a reset to get past it. Previously existing mixed-case emails would also need a deliberate normalization/conflict review in that scenario.
 
 The Milestone 3 migration is additive: it creates four tables, two enums, foreign keys, and indexes without changing existing users or sessions. It is wrapped in a transaction and has been applied only to the approved isolated test database. The development database is not migrated automatically. Use `prisma:migrate:deploy` to apply the existing reviewed migration, not a reset.
+
+The Milestone 4 migration is also additive: it creates Task, TaskStatus, TaskPriority, foreign keys, five indexes, and a completion-consistency CHECK. It does not change existing user/team/project rows. It has been applied to the isolated test database only. No new dependencies or environment settings are needed.
 
 ## Authentication and profile API
 
@@ -219,6 +222,121 @@ Expiry is seven days from creation. GET requests derive EXPIRED in responses for
 
 Acceptance and membership creation share a transaction and the team lock. Simultaneous acceptance yields one 200 and one 409, with exactly one membership. Repeated acceptance, acceptance after decline, and expired responses return 409 without adding membership. Repeated decline returns the unchanged declined record with the same respondedAt; decline after acceptance returns 409. Consumed invitations cannot be replayed to rejoin after removal. New invitations may be created after decline/expiry or after a previously accepted member leaves.
 
+## Task management
+
+### Model and integrity
+
+`Task` has UUID id, title, nullable description, status, priority, nullable dueDate/completedAt, required project/creator, optional assignee, and creation/update timestamps. Status is TODO (default), IN_PROGRESS, or COMPLETED. Priority is LOW, MEDIUM (default), HIGH, or URGENT. The project owns its tasks and cascades deletion to them. Creator deletion is restricted to preserve provenance; assignee deletion sets assignedToId to null. Creator/assignee responses expose only id and name, never email, password, or session fields.
+
+Indexes cover `(projectId, status)`, `(assignedToId, status)`, `(projectId, dueDate)`, `createdById`, and `(projectId, createdAt, id)`. These support common filters, default project pagination, and foreign-key lookups. Indexes for every filter/sort combination are deliberately avoided pending actual query measurements. The completion CHECK is explicit SQL, with a corresponding Prisma schema comment; retain it in future migration changes.
+
+### Task permissions
+
+All operations require authentication and current membership in the project's team. Permission checks live in services, and mutations use the existing transaction-scoped team row lock before re-reading task state and role.
+
+| Action | OWNER / ADMIN | MEMBER |
+| --- | --- | --- |
+| Create unassigned task | Yes | Yes |
+| View/list/search team tasks | Yes | Yes |
+| Edit title/description/priority/dueDate | Any team task | Own created tasks only |
+| Assign/reassign/unassign | Yes | No |
+| Change status | Any team task | Creator or current assignee only |
+| Delete | Any team task | Own created tasks only |
+
+Creating as a MEMBER requires **omitting assignedToId entirely**; even explicit null is an assignment field and returns 403. An assignee must be a current member of the same team, checked under the same lock as task creation/assignment. Assignee status alone grants status changes, not general editing or deletion.
+
+When a member leaves or is removed, the membership transaction clears their assignments across **all projects in that team**, including completed tasks, before deleting membership. It leaves other-team assignments, creator provenance, status, and completedAt untouched. Assignment and removal share the team lock, so a racing assignment either commits before removal and is cleared, or checks membership after removal and fails. No tasks are deleted by membership removal.
+
+Cross-team/unknown tasks and projects return non-enumerating 404. For DELETE, a MEMBER who did not create the task also receives the same task 404. Insufficient edit/assignment/status permissions within a known team return 403. Invalid request shapes/UUIDs/dates return 400; a syntactically valid nonexistent or out-of-team assignee returns the same 422. Errors keep the existing `{"error":{"message":"..."}}` shape.
+
+### Task REST endpoints
+
+All examples use `Authorization: Bearer <accessToken>` and JSON bodies. Writes reject unknown fields; general task PATCH cannot change projectId, createdById, assignedToId, status, or completedAt.
+
+| Method/path | Body or query example | Success |
+| --- | --- | --- |
+| POST `/api/projects/:projectId/tasks` | `{"title":"Implement authentication","description":"Add endpoints","priority":"HIGH","dueDate":"2026-12-01T10:00:00.000Z"}` | 201 `{"task":{...task fields}}` |
+| GET `/api/projects/:projectId/tasks` | `?status=TODO&priority=HIGH&page=1&limit=20` | 200 `{"tasks":[...],"pagination":{"page":1,"limit":20,"total":1}}` |
+| GET `/api/tasks/assigned-to-me` | `?status=IN_PROGRESS&projectId=<uuid>&search=authentication` | 200 tasks/pagination |
+| GET `/api/tasks/:taskId` | None | 200 `{"task":{...}}` |
+| PATCH `/api/tasks/:taskId` | `{"title":"Updated title","description":null,"priority":"URGENT","dueDate":null}` | 200 updated task |
+| PATCH `/api/tasks/:taskId/assignee` | `{"assignedToId":"<member-uuid>"}` or `{"assignedToId":null}` | 200 updated task |
+| PATCH `/api/tasks/:taskId/status` | `{"status":"COMPLETED"}` | 200 updated task |
+| DELETE `/api/tasks/:taskId` | No body | 204 empty body |
+
+A task response has this shape (placeholders replace generated values):
+
+```json
+{
+  "task": {
+    "id": "<task-uuid>",
+    "title": "Implement authentication",
+    "description": "Add endpoints",
+    "status": "TODO",
+    "priority": "HIGH",
+    "dueDate": "2026-12-01T10:00:00.000Z",
+    "completedAt": null,
+    "projectId": "<project-uuid>",
+    "assignedToId": null,
+    "createdById": "<current-user-uuid>",
+    "createdAt": "<ISO timestamp>",
+    "updatedAt": "<ISO timestamp>",
+    "assignedTo": null,
+    "createdBy": { "id": "<current-user-uuid>", "name": "Test User" }
+  }
+}
+```
+
+Title is trimmed, required, and 1–200 characters. Description is trimmed, nullable, and at most 5,000 characters. Empty patches are rejected. dueDate accepts null or an ISO 8601 datetime with a timezone (`Z` or numeric offset); invalid calendar dates and timezone-free local times are rejected. Years must be 0001–9999. Responses normalize dates to UTC, at millisecond precision. Past due dates are allowed; date-only deadlines are not supported.
+
+All enum status transitions are allowed for an authorized actor. COMPLETED sets completedAt to server time; repeated COMPLETED retains the original timestamp. Reopening to TODO/IN_PROGRESS clears it; later completion records a new time. Status and completedAt change together under the team lock. A PostgreSQL CHECK additionally rejects any completed task without a timestamp or noncompleted task with one. Assigning or editing a task does not change completion state.
+
+### Filtering, search, sorting and pagination
+
+Project-task lists accept `status`, `priority`, `assignedToId=<uuid>`, `assignedToId=null` (unassigned), `search`, `page`, `limit`, `sortBy`, and `sortOrder`. Assigned-to-me accepts the same options except assignedToId, with optional `projectId` instead. It always filters assignments **and current team membership inside PostgreSQL**; stale/out-of-band assignments cannot expose another team's tasks. A projectId filter with no authorized matches yields an empty assigned-to-me collection. The fixed assigned-to-me route is registered before the dynamic task-ID route.
+
+Examples:
+
+```text
+/api/projects/<uuid>/tasks?status=TODO&priority=HIGH&search=authentication&sortBy=dueDate&sortOrder=asc&page=1&limit=20
+/api/projects/<uuid>/tasks?assignedToId=null&sortBy=priority&sortOrder=desc
+/api/tasks/assigned-to-me?projectId=<uuid>&status=IN_PROGRESS&search=api&sortBy=updatedAt&sortOrder=desc
+```
+
+Search trims a 1–200-character string and performs case-insensitive substring matching across title OR description. Search and other filters compose using AND. Prisma parameterizes values; SQL-looking input remains data. `%`, `_`, and backslash are escaped as literal search characters, not LIKE wildcards. Search is not full-text search and may scan rows as the dataset grows.
+
+Pagination defaults to page 1, limit 20, with limit 1–100 and page 1–100,000. sortBy accepts createdAt (default), updatedAt, dueDate, priority, or status; sortOrder is asc/desc (default desc). UUID ascending is always the secondary key, including when the primary sort descends. dueDate nulls sort **last in both directions**. Enum ascending order is LOW → MEDIUM → HIGH → URGENT and TODO → IN_PROGRESS → COMPLETED; descending reverses it. Offset pages are deterministic for a fixed dataset but can shift with concurrent writes. Counts and page data use the same authorization/filter predicates; they are not a cross-request snapshot.
+
+### Investigating the project-creation route 404
+
+The router mounts `/api/teams` → `/:teamId/projects` → POST `/`, with mergeParams enabled. The existing 30 collaboration tests passed before Milestone 4 changes, including POST `/api/teams/:teamId/projects`. A new direct network HTTP test verifies 201 using a literal constructed URL and reproduces the exact `{"error":{"message":"Route not found"}}` response with `/api/teams//projects`. No application routing defect was confirmed, so no unrelated route rewrite was made.
+
+An empty PowerShell variable produces that double slash. This reproduces a possible cause; the original manual request and historical server process are unavailable, so its exact cause is unproven. At initial inspection there was no listener on configured port 3000. Use the response wrapper correctly and validate the ID before constructing the URL:
+
+```powershell
+# Use your privately obtained access token; do not print or share it.
+$baseUrl = 'http://localhost:3000'
+$headers = @{ Authorization = "Bearer $accessToken" }
+$teamResponse = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/teams" -Headers $headers -ContentType 'application/json' -Body (@{ name = 'My team' } | ConvertTo-Json)
+$teamId = $teamResponse.team.id
+$parsedTeamId = [guid]::Empty
+if (-not [guid]::TryParse([string]$teamId, [ref]$parsedTeamId)) { throw 'teamId must come from response.team.id' }
+$projectUri = '{0}/api/teams/{1}/projects' -f $baseUrl.TrimEnd('/'), $teamId
+Write-Host $projectUri
+$projectResponse = Invoke-RestMethod -Method Post -Uri $projectUri -Headers $headers -ContentType 'application/json' -Body (@{ name = 'API' } | ConvertTo-Json)
+$projectId = $projectResponse.project.id
+```
+
+To check a port without exposing process arguments:
+
+```powershell
+Get-NetTCPConnection -State Listen -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object LocalPort, OwningProcess
+# Substitute the reported PID if a process is listening:
+Get-Process -Id <PID>
+```
+
+Stop an old API in its own terminal with Ctrl+C, then run `npm.cmd run dev` from this project directory. For compiled mode, run `npm.cmd run build` before `npm.cmd start`; start does not rebuild dist. Do not terminate unrelated Node processes. Confirm `/api/health`, the port, current membership, and the exact printed URL. A route-level 404 (`Route not found`) differs from authorization/resource-level 404 (`Team not found`/`Project not found`); malformed nonempty UUIDs return 400, and missing/expired authentication returns 401.
+
 ## Tests
 
 ```powershell
@@ -234,7 +352,7 @@ npm.cmd run test:db:migrate
 npm.cmd run test:integration
 ```
 
-During Milestone 2, creation of `task_tracker_auth_test` on the configured server was explicitly approved. It has been reused for Milestone 3 and now has all three migrations applied. Its URL was passed only through subprocess environment variables; your `.env` was left unchanged. Add TEST_DATABASE_URL privately to rerun the suite through npm scripts.
+During Milestone 2, creation of `task_tracker_auth_test` on the configured server was explicitly approved. It has been reused and now has all four migrations applied. Its URL was passed only through subprocess environment variables; your `.env` was left unchanged. Add TEST_DATABASE_URL privately to rerun the suite through npm scripts.
 
 The migration helper refuses the configured development database and applies only normal migrations to the named test database. Tests refuse the development database, generate fresh signing secrets in memory, use uniquely named fixtures, and delete only those fixtures afterward. They never truncate/reset tables. Existing coverage includes registration and uniqueness races, login, profiles, real health connectivity, hashed token persistence, rotation/reuse/expiry, simultaneous refresh, refresh/logout races, retryable logout, and deleted-user rejection. The collaboration suite adds role matrices, owner protection, self-removal, direct service authorization, invitation isolation/expiry/concurrent creation/concurrent acceptance, database uniqueness constraints, project isolation, pagination, and strict validation. Without TEST_DATABASE_URL, PostgreSQL suites are explicitly skipped; a green database-free test run does not establish persistence correctness.
 
@@ -248,7 +366,8 @@ Email verification, password reset/change, signing-key rotation, session listing
 
 ## Actual verification
 
-- Milestone 3 requires no additional dependencies; it reuses the installed stack.
+- Milestone 4 requires no additional dependencies; it reuses the installed stack.
 - Prisma client generation, schema validation, application/config/test type checks, and production build passed.
-- All **49 automated tests passed** with the approved isolated PostgreSQL database: 30 collaboration integration tests, 13 authentication integration tests, and six security tests, with no skips or failures.
-- Migration application and real health connectivity were verified against the test database. The Milestone 3 development migration remains unapplied. Keep existing private database/JWT settings; no new Milestone 3 environment variables are required.
+- All **85 automated tests passed** with the approved isolated PostgreSQL database: 36 task integration tests, 30 collaboration integration tests, 13 authentication integration tests, and six security tests, with no skips or failures.
+- Task tests cover defaults/validation, task permissions, literal network project-route regression, cross-team isolation, composed filtering/search/sorting, timestamp consistency, current-membership assignment feeds, removal cleanup, and concurrent assignment/creation/removal.
+- Migration application and real health connectivity were verified against the test database. The Milestone 4 development migration remains unapplied. Keep existing private database/JWT settings; no new Milestone 4 environment variables are required.

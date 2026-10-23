@@ -20,6 +20,8 @@ model User {
   memberships     TeamMember[]
   sentInvitations TeamInvitation[] @relation("InvitationSender")
   createdProjects Project[]        @relation("ProjectCreator")
+  createdTasks    Task[]           @relation("TaskCreator")
+  assignedTasks   Task[]           @relation("TaskAssignee")
   createdAt       DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt       DateTime         @updatedAt @db.Timestamptz(3)
 }
@@ -109,7 +111,46 @@ model Project {
   updatedAt   DateTime @updatedAt @db.Timestamptz(3)
   team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   createdBy   User     @relation("ProjectCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  tasks       Task[]
 
   @@index([teamId, createdAt, id])
   @@index([createdById])
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Task {
+  id           String       @id @default(uuid()) @db.Uuid
+  title        String
+  description  String?
+  status       TaskStatus   @default(TODO)
+  priority     TaskPriority @default(MEDIUM)
+  dueDate      DateTime?    @db.Timestamptz(3)
+  completedAt  DateTime?    @db.Timestamptz(3)
+  projectId    String       @db.Uuid
+  assignedToId String?      @db.Uuid
+  createdById  String       @db.Uuid
+  createdAt    DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime     @updatedAt @db.Timestamptz(3)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedTo   User?        @relation("TaskAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy    User         @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  // Completion consistency is also protected by a SQL CHECK in the migration.
+  @@index([projectId, status])
+  @@index([assignedToId, status])
+  @@index([projectId, dueDate])
+  @@index([createdById])
+  @@index([projectId, createdAt, id])
 }
