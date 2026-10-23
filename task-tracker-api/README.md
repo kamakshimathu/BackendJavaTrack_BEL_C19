@@ -1,6 +1,6 @@
 # Task Tracker API
 
-Milestone 2: secure authentication and profile management, retaining the Milestone 1 foundation. No tasks, teams, or AI features.
+Milestone 3: teams, membership, invitations, projects, and role-based authorization, preserving the authentication and project foundation. No tasks, comments, attachments, notifications, or AI features.
 
 ## Stack and configuration
 
@@ -14,8 +14,8 @@ Milestone 2: secure authentication and profile management, retaining the Milesto
 
 ```text
 prisma/
-  schema.prisma              # User and RefreshSession
-  migrations/                # Initial migration and forward authentication migration
+  schema.prisma              # Users, refresh sessions, teams, invitations, projects
+  migrations/                # Forward-only foundation/auth/collaboration migrations
 prisma.config.ts             # Prisma CLI configuration
 src/
   config/
@@ -30,7 +30,11 @@ src/
     health/health.routes.ts
     auth/                    # Validation, password hashing, JWTs, sessions, routes
     users/                   # Public profile selection and protected routes
+    teams/                   # Team routes, membership rules, transaction helpers
+    invitations/             # Invite creation, listing, accept/decline
+    projects/                # Team-scoped project access
   shared/app-error.ts        # Expected application errors
+  shared/request-schemas.ts  # Strict UUID/body/query validation and pagination
   app.ts                     # Express middleware and routes
   server.ts                  # Database startup, HTTP server, shutdown
 ```
@@ -66,7 +70,8 @@ No database is automatically created or migrated during installation, generation
 npm.cmd run prisma:generate
 npm.cmd run typecheck
 npm.cmd run prisma:validate
-# Review prisma/migrations/20261024000100_auth_sessions/migration.sql first.
+# Review pending migration SQL, including:
+# prisma/migrations/20261024000200_teams_invitations_projects/migration.sql
 # Apply the already generated forward migration to the confirmed target:
 npm.cmd run prisma:migrate:deploy
 # Prisma 7 migrations do not generate the client automatically:
@@ -102,7 +107,9 @@ CLI configuration permits an absent DATABASE_URL for offline client generation. 
 
 ## Forward migration safety
 
-The existing database was inspected read-only and had zero User rows at implementation time. The authentication migration adds required `passwordHash` without a default, creates RefreshSession, and runs in a transaction. It does not reset tables or invent passwords. If User rows exist when you apply it, PostgreSQL rejects the required column and rolls back. Stop and plan a staged nullable-column/account-enrollment migration; do not delete users or accept a reset to get past it. Previously existing mixed-case emails would also need a deliberate normalization/conflict review in that scenario.
+During Milestone 2 the existing database was inspected read-only and had zero User rows. The authentication migration adds required `passwordHash` without a default, creates RefreshSession, and runs in a transaction. It does not reset tables or invent passwords. If legacy User rows exist when you apply that migration, PostgreSQL rejects the required column and rolls back. Stop and plan a staged nullable-column/account-enrollment migration; do not delete users or accept a reset to get past it. Previously existing mixed-case emails would also need a deliberate normalization/conflict review in that scenario.
+
+The Milestone 3 migration is additive: it creates four tables, two enums, foreign keys, and indexes without changing existing users or sessions. It is wrapped in a transaction and has been applied only to the approved isolated test database. The development database is not migrated automatically. Use `prisma:migrate:deploy` to apply the existing reviewed migration, not a reset.
 
 ## Authentication and profile API
 
@@ -145,6 +152,73 @@ Reusing a consumed/revoked token revokes every remaining refresh token in that f
 
 Each family's refresh expiry is absolute from login and does not slide on rotation. Keep consumed/revoked rows until that expiry so replay can be detected. Schedule a daily maintenance job to execute `DELETE FROM "RefreshSession" WHERE "expiresAt" < NOW();`. `expiresAt` is indexed for cleanup, `tokenHash` is uniquely indexed for lookup, `familyId` for revocation, and `userId` for user-session operations. Cleanup is documented, not scheduled automatically.
 
+## Teams, invitations, and projects
+
+Every new endpoint requires `Authorization: Bearer <accessToken>`. Roles are read from current PostgreSQL memberships on every operation; they are never trusted from JWT claims or request bodies. Permission checks live in services and apply even when routes are bypassed. A nonmember receives the same 404 response for an unknown and an inaccessible team/project. A known team member with insufficient permissions receives 403.
+
+### Data model
+
+- `Team`: UUID, name, nullable description, owner user, timestamps; has memberships, invitations, and projects. Creation inserts the team and its OWNER membership atomically. Owner identity is immutable in this milestone.
+- `TeamMember`: UUID, team/user relation, OWNER/ADMIN/MEMBER role, joinedAt. `(teamId, userId)` is unique; userId is indexed for listing a user's teams. A PostgreSQL partial unique index allows at most one OWNER per team. Services prevent removing or demoting that owner.
+- `TeamInvitation`: UUID, team, normalized invitedEmail, inviting user, PENDING/ACCEPTED/DECLINED/EXPIRED status, expiry, creation/response times. Indexes support email listing, team/email lookups, sender references, and expiry processing. A partial unique index allows only one stored PENDING invitation per team/email while preserving history.
+- `Project`: UUID, team, name, nullable description, creator user, timestamps. `(teamId, createdAt, id)` supports ordered team listing; createdById is indexed. Names may repeat within and across teams; project IDs identify projects.
+
+Deleting a team cascades to its memberships, invitations, and projects. Memberships cascade when their user is deleted. Team owner, invitation sender, and project creator references restrict user deletion to preserve ownership/history. Account deletion and team deletion endpoints are not part of this milestone. Partial indexes are maintained explicitly in the SQL migration; Prisma's schema file comments identify these custom constraints. Do not replace migrations with `db push` or lose those indexes in future migration edits.
+
+### Permission matrix
+
+| Action | OWNER | ADMIN | MEMBER |
+| --- | --- | --- | --- |
+| View team, members, and projects | Yes | Yes | Yes |
+| Update team details | Yes | Yes | No |
+| Invite registered users | Yes | Yes | No |
+| Create/update projects | Yes | Yes | No |
+| Change MEMBER/ADMIN roles | Yes | No | No |
+| Remove another member | ADMIN or MEMBER targets | MEMBER targets only | No |
+| Remove own membership | No | No | Yes |
+
+The ADMIN self-removal restriction follows the rule that ADMIN must never remove an ADMIN. An owner may first demote that administrator to MEMBER so they can leave. There is no ownership transfer or OWNER assignment endpoint. To leave, an OWNER needs a future ownership-transfer workflow.
+
+Team writes acquire a row lock on the team inside a Prisma transaction **before** reading current roles. Membership changes, invitations, and project writes share this order, preventing a stale role check from authorizing a write after demotion/removal commits. This deliberately serializes writes within one team for straightforward MVP correctness. Different teams can write independently.
+
+### Endpoints and JSON examples
+
+Names are trimmed, nonempty, and at most 100 characters. Descriptions are optional, at most 2,000 characters, and may be cleared with null. Patches must change at least one allowed field. All bodies, IDs, and query strings are validated with strict Zod schemas; unknown fields, malformed UUIDs, invalid pagination, and empty patches return 400.
+
+| Method/path | Example body or query | Successful response |
+| --- | --- | --- |
+| POST `/api/teams` | `{"name":"Platform","description":"Backend team"}` | 201 `{"team":{"id":"<uuid>","name":"Platform","description":"Backend team","ownerId":"<current-user-id>","role":"OWNER","createdAt":"<ISO>","updatedAt":"<ISO>"}}` |
+| GET `/api/teams` | `?page=1&limit=20` | 200 `{"teams":[{"id":"<uuid>","role":"OWNER","...":"team fields"}],"pagination":{"page":1,"limit":20,"total":1}}` |
+| GET `/api/teams/:teamId` | None | 200 `{"team":{...team fields and current role}}` |
+| PATCH `/api/teams/:teamId` | `{"name":"Platform v2","description":null}` | 200 `{"team":{...updated team fields}}` |
+| GET `/api/teams/:teamId/members` | `?page=1&limit=20` | 200 `{"members":[{"id":"<membership-id>","teamId":"<team-id>","userId":"<user-id>","role":"MEMBER","joinedAt":"<ISO>","user":{...public profile}}],"pagination":{...}}` |
+| PATCH `/api/teams/:teamId/members/:userId` | `{"role":"ADMIN"}` or `{"role":"MEMBER"}` | 200 `{"member":{...membership and public profile}}` |
+| DELETE `/api/teams/:teamId/members/:userId` | No body | 204 empty body |
+| POST `/api/teams/:teamId/invitations` | `{"email":"registered@example.com"}` | 201 `{"invitation":{...invitation fields}}` |
+| GET `/api/invitations` | `?page=1&limit=20` | 200 `{"invitations":[{...invitation fields,"team":{"id":"<uuid>","name":"Platform"}}],"pagination":{...}}` |
+| POST `/api/invitations/:invitationId/accept` | No body or `{}` | 200 `{"invitation":{...fields,"status":"ACCEPTED"}}` |
+| POST `/api/invitations/:invitationId/decline` | No body or `{}` | 200 `{"invitation":{...fields,"status":"DECLINED"}}` |
+| POST `/api/teams/:teamId/projects` | `{"name":"API","description":"First release"}` | 201 `{"project":{"id":"<uuid>","teamId":"<team-id>","createdById":"<current-user-id>","name":"API","description":"First release","createdAt":"<ISO>","updatedAt":"<ISO>"}}` |
+| GET `/api/teams/:teamId/projects` | `?page=1&limit=20` | 200 `{"projects":[{...project fields}],"pagination":{...}}` |
+| GET `/api/projects/:projectId` | None | 200 `{"project":{...project fields}}` |
+| PATCH `/api/projects/:projectId` | `{"name":"API v2","description":null}` | 200 `{"project":{...updated project fields}}` |
+
+`...` in response examples abbreviates the documented public fields. Invitation fields are `id`, `teamId`, `invitedEmail`, `invitedById`, `status`, `expiresAt`, `createdAt`, and `respondedAt`. No credential/session fields are loaded into these responses. ownerId, createdById, teamId, roles, and invitation identity are assigned by the server where appropriate, never from privileged body fields.
+
+All collection endpoints use page/limit pagination: defaults 1/20, limit 1–100, page 1–100,000. Teams/members sort by joinedAt then UUID; invitations/projects sort by createdAt then UUID, ascending. Offset pagination is deterministic for a fixed dataset; concurrent inserts/removals can shift pages, and totals are not a cross-request snapshot. Only a user's memberships, their invitations, and projects/members in an authorized team are included.
+
+### Invitations without email delivery
+
+1. The invitee registers normally first. An OWNER/ADMIN creates an invitation using their normalized account email. Existing members and duplicate active invitations return 409; unregistered invitees return 404.
+2. The invitee signs in and calls GET `/api/invitations` to discover their invitations. There is no email delivery, notification, or bearer invitation token.
+3. The invitee submits the invitation UUID to accept or decline. Every response verifies their **current database email**; knowing another invitation UUID grants no access. Acceptance always inserts MEMBER, never a role chosen by the invitee.
+
+Email ownership verification was not implemented in Milestone 2. These endpoints match the authenticated account's registered email; they do **not** establish ownership of that mailbox. Verified-email gating remains a prerequisite for a production email-based invitation system. Email changes remain unavailable through profile endpoints. If added later, old invitations stop matching as soon as the account email changes; they do not follow the user ID and must be reissued. Email reuse/account reassignment also needs a deliberate verification policy.
+
+Expiry is seven days from creation. GET requests derive EXPIRED in responses for overdue PENDING records without writing to PostgreSQL. Accept/decline of such a record commits its EXPIRED transition before returning 409. Creating a replacement invitation also persists expiry of matching overdue PENDING records before inserting the new one. Otherwise, a stored overdue record may remain PENDING until a write touches it; use expiresAt to determine effective status. No background expiry job is scheduled. respondedAt remains null for expiry because the invitee did not respond.
+
+Acceptance and membership creation share a transaction and the team lock. Simultaneous acceptance yields one 200 and one 409, with exactly one membership. Repeated acceptance, acceptance after decline, and expired responses return 409 without adding membership. Repeated decline returns the unchanged declined record with the same respondedAt; decline after acceptance returns 409. Consumed invitations cannot be replayed to rejoin after removal. New invitations may be created after decline/expiry or after a previously accepted member leaves.
+
 ## Tests
 
 ```powershell
@@ -160,9 +234,9 @@ npm.cmd run test:db:migrate
 npm.cmd run test:integration
 ```
 
-During implementation, creation of `task_tracker_auth_test` on the configured server was explicitly approved. That database now exists with both migrations applied. Its URL was passed only through subprocess environment variables; your `.env` was left unchanged. Add TEST_DATABASE_URL privately to rerun the suite through npm scripts.
+During Milestone 2, creation of `task_tracker_auth_test` on the configured server was explicitly approved. It has been reused for Milestone 3 and now has all three migrations applied. Its URL was passed only through subprocess environment variables; your `.env` was left unchanged. Add TEST_DATABASE_URL privately to rerun the suite through npm scripts.
 
-The migration helper refuses the configured development database and applies only normal migrations to the named test database. Tests refuse the development database, generate fresh signing secrets in memory, use uniquely named fixtures, and delete only those fixtures afterward. They never truncate/reset tables. The suite covers registration and uniqueness races, login, profiles, real health connectivity, hashed token persistence, rotation/reuse/expiry, simultaneous refresh, refresh/logout races, retryable logout, and deleted-user rejection. Without TEST_DATABASE_URL, the suite is explicitly skipped; a green database-free test run does not establish persistence correctness.
+The migration helper refuses the configured development database and applies only normal migrations to the named test database. Tests refuse the development database, generate fresh signing secrets in memory, use uniquely named fixtures, and delete only those fixtures afterward. They never truncate/reset tables. Existing coverage includes registration and uniqueness races, login, profiles, real health connectivity, hashed token persistence, rotation/reuse/expiry, simultaneous refresh, refresh/logout races, retryable logout, and deleted-user rejection. The collaboration suite adds role matrices, owner protection, self-removal, direct service authorization, invitation isolation/expiry/concurrent creation/concurrent acceptance, database uniqueness constraints, project isolation, pagination, and strict validation. Without TEST_DATABASE_URL, PostgreSQL suites are explicitly skipped; a green database-free test run does not establish persistence correctness.
 
 ## Deployment considerations
 
@@ -174,7 +248,7 @@ Email verification, password reset/change, signing-key rotation, session listing
 
 ## Actual verification
 
-- Installed dependencies with zero reported npm vulnerabilities.
+- Milestone 3 requires no additional dependencies; it reuses the installed stack.
 - Prisma client generation, schema validation, application/config/test type checks, and production build passed.
-- All **19 automated tests passed** with the approved isolated PostgreSQL database: 13 integration tests and six security tests, with no skips or failures.
-- Test migrations and real health connectivity were verified against the test database. The development migration remains unapplied, and development startup still needs private JWT environment configuration.
+- All **49 automated tests passed** with the approved isolated PostgreSQL database: 30 collaboration integration tests, 13 authentication integration tests, and six security tests, with no skips or failures.
+- Migration application and real health connectivity were verified against the test database. The Milestone 3 development migration remains unapplied. Keep existing private database/JWT settings; no new Milestone 3 environment variables are required.

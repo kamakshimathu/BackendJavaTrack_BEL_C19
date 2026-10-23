@@ -16,6 +16,10 @@ model User {
   email           String           @unique
   passwordHash    String
   refreshSessions RefreshSession[]
+  ownedTeams      Team[]           @relation("TeamOwner")
+  memberships     TeamMember[]
+  sentInvitations TeamInvitation[] @relation("InvitationSender")
+  createdProjects Project[]        @relation("ProjectCreator")
   createdAt       DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt       DateTime         @updatedAt @db.Timestamptz(3)
 }
@@ -33,4 +37,79 @@ model RefreshSession {
   @@index([userId])
   @@index([familyId])
   @@index([expiresAt])
+}
+
+enum TeamRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+model Team {
+  id          String           @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  ownerId     String           @db.Uuid
+  createdAt   DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime         @updatedAt @db.Timestamptz(3)
+  owner       User             @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  memberships TeamMember[]
+  invitations TeamInvitation[]
+  projects    Project[]
+
+  @@index([ownerId])
+}
+
+model TeamMember {
+  id       String   @id @default(uuid()) @db.Uuid
+  teamId   String   @db.Uuid
+  userId   String   @db.Uuid
+  role     TeamRole @default(MEMBER)
+  joinedAt DateTime @default(now()) @db.Timestamptz(3)
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+}
+
+model TeamInvitation {
+  id           String           @id @default(uuid()) @db.Uuid
+  teamId       String           @db.Uuid
+  invitedEmail String
+  invitedById  String           @db.Uuid
+  status       InvitationStatus @default(PENDING)
+  expiresAt    DateTime         @db.Timestamptz(3)
+  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
+  respondedAt  DateTime?        @db.Timestamptz(3)
+  team         Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  invitedBy    User             @relation("InvitationSender", fields: [invitedById], references: [id], onDelete: Restrict)
+
+  // Pending invitation uniqueness is a partial index in the SQL migration.
+  @@index([teamId, invitedEmail])
+  @@index([invitedEmail, createdAt, id])
+  @@index([invitedById])
+  @@index([status, expiresAt])
+}
+
+model Project {
+  id          String   @id @default(uuid()) @db.Uuid
+  teamId      String   @db.Uuid
+  name        String
+  description String?
+  createdById String   @db.Uuid
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy   User     @relation("ProjectCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([teamId, createdAt, id])
+  @@index([createdById])
 }
