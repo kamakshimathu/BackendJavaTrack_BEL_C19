@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { registerSchema, loginSchema, refreshSchema } from './auth.schemas.js';
 import * as auth from './auth.service.js';
+import { emptyQuerySchema } from '../../shared/request-schemas.js';
 
 export const authRouter = Router();
 const credentialLimiter = rateLimit({
@@ -14,6 +15,7 @@ const sessionLimiter = rateLimit({
 });
 
 authRouter.use((_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
+authRouter.use((req, _res, next) => { emptyQuerySchema.parse(req.query); next(); });
 authRouter.post('/register', credentialLimiter, async (req, res) => {
   res.status(201).json({ user: await auth.register(registerSchema.parse(req.body)) });
 });

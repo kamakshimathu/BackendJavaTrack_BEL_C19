@@ -95,8 +95,13 @@ describe('Milestone 4 PostgreSQL task integration', { skip: !testUrl }, () => {
         body: JSON.stringify({ name: 'Real HTTP project' }),
       });
       assert.equal(response.status, 201);
-      const body = await response.json() as { project: { teamId: string } };
+      const body = await response.json() as { project: { id: string; teamId: string } };
       assert.equal(body.project.teamId, teamId);
+      const createdTask = await fetch(`${base}/api/projects/${body.project.id}/tasks`, {
+        method: 'POST', headers: { Authorization: bearer(actors.creator), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'Direct HTTP task', assignedToId: null }),
+      });
+      assert.equal(createdTask.status, 201);
       const missingId = await fetch(`${base}/api/teams//projects`, {
         method: 'POST', headers: { Authorization: bearer(actors.owner), 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'Missing variable' }),
@@ -162,8 +167,11 @@ describe('Milestone 4 PostgreSQL task integration', { skip: !testUrl }, () => {
     await request(app).get(projectUrl(otherProjectId)).set('Authorization', bearer(actors.creator)).expect(404);
   });
 
-  test('MEMBER cannot supply an assignee during creation, even explicit null or self', async () => {
-    for (const assignedToId of [null, actors.creator.id]) {
+  test('MEMBER may explicitly request no assignee but cannot assign a user during creation', async () => {
+    const response = await request(app).post(projectUrl()).set('Authorization', bearer(actors.creator))
+      .send({ title: 'Explicitly unassigned', assignedToId: null }).expect(201);
+    assert.equal(response.body.task.assignedToId, null);
+    for (const assignedToId of [actors.creator.id, actors.assignee.id]) {
       await request(app).post(projectUrl()).set('Authorization', bearer(actors.creator)).send({ title: 'No', assignedToId }).expect(403);
     }
   });

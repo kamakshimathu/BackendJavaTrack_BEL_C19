@@ -70,6 +70,8 @@ test('HTTP middleware rejects missing/invalid tokens, unknown fields, bad JSON a
   await request(app).post('/api/auth/register').send({ name: 'Test', email: 'invalid', password: 'weak' }).expect(400);
   await request(app).post('/api/auth/login').set('Content-Type', 'application/json').send('{').expect(400);
   await request(app).get('/missing').expect(404);
+  await request(app).get('/api/health?unexpected=true').expect(400);
+  await request(app).post('/api/auth/login?unexpected=true').send({}).expect(400);
 });
 
 test('authentication rate limiter returns consistent JSON 429', async () => {

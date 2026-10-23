@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { database } from '../../config/database.js';
+import { emptyQuerySchema } from '../../shared/request-schemas.js';
 
 export const healthRouter = Router();
 
-healthRouter.get('/', async (_req, res) => {
+healthRouter.get('/', async (req, res) => {
+  emptyQuerySchema.parse(req.query);
   res.setHeader('Cache-Control', 'no-store');
 
   try {

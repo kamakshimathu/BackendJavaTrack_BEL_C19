@@ -323,6 +323,7 @@ describe('Milestone 5 PostgreSQL comments and private attachments', { skip: !tes
     assert.ok(await database.fileCleanup.findUnique({where:{storageKey:row.storageKey}}));
     assert.equal(await exists(join(storageRoot,row.storageKey)),true);
     await request(app).get(`/api/attachments/${id}/download`).set('Authorization',bearer(actors.author)).expect(404);
+    await database.fileCleanup.update({where:{storageKey:row.storageKey},data:{notBefore:new Date(0)}});
     assert.deepEqual(await cleanup.cleanupFiles(10,[row.storageKey]),{cleaned:1,failed:0});
     assert.equal(await exists(join(storageRoot,row.storageKey)),false);
   });
@@ -361,6 +362,26 @@ describe('Milestone 5 PostgreSQL comments and private attachments', { skip: !tes
     await database.fileCleanup.create({data:{storageKey:row.storageKey}});
     assert.equal((await cleanup.cleanupFiles(10,[row.storageKey])).cleaned,0);
     assert.equal(await exists(join(storageRoot,row.storageKey)),true);
+  });
+  test('failed oldest cleanup jobs back off so healthy jobs still progress', async () => {
+    const bad=randomUUID(), good=randomUUID(); keys.add(bad); keys.add(good);
+    await originalSave(bad,txt); await originalSave(good,txt);
+    await database.fileCleanup.createMany({data:[{storageKey:bad,notBefore:new Date(0)},{storageKey:good,notBefore:new Date(1)}]});
+    storage.delete=async(key)=>{if(key===bad)throw new Error('injected failure');await originalDelete(key);};
+    try {
+      assert.equal((await cleanup.cleanupFiles(1,[bad,good])).failed,1);
+      assert.equal((await cleanup.cleanupFiles(1,[bad,good])).cleaned,1);
+      assert.ok((await database.fileCleanup.findUniqueOrThrow({where:{storageKey:bad}})).notBefore.getTime()>Date.now());
+    } finally {storage.delete=originalDelete;await database.fileCleanup.update({where:{storageKey:bad},data:{notBefore:new Date(0)}});await cleanup.cleanupFiles(1,[bad]);}
+  });
+  test('concurrent cleanup workers safely claim and delete each queued file once', async () => {
+    const jobKeys=[randomUUID(),randomUUID()];jobKeys.forEach(key=>keys.add(key));
+    for(const key of jobKeys){await originalSave(key,txt);await database.fileCleanup.create({data:{storageKey:key,notBefore:new Date(0)}});}
+    const results=await Promise.all([cleanup.cleanupFiles(10,jobKeys),cleanup.cleanupFiles(10,jobKeys)]);
+    assert.equal(results.reduce((sum,result)=>sum+result.cleaned,0),2);
+    assert.equal(results.reduce((sum,result)=>sum+result.failed,0),0);
+    assert.equal(await database.fileCleanup.count({where:{storageKey:{in:jobKeys}}}),0);
+    for(const key of jobKeys)assert.equal(await exists(join(storageRoot,key)),false);
   });
   test('former members lose comment and attachment access even when author/uploader', async () => {
     const comment=await comments.createComment(actors.leaving.id,taskId,'Former author');

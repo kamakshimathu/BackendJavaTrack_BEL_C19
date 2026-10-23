@@ -49,7 +49,7 @@ export async function createTask(actorId: string, projectId: string, input: Crea
   const project = await getProject(actorId, projectId);
   try {
     return await withTeamWrite(project.teamId, actorId, undefined, async (tx, member) => {
-      if (input.assignedToId !== undefined && !managers.includes(member.role)) {
+      if (input.assignedToId != null && !managers.includes(member.role)) {
         throw new AppError(403, 'Only team managers may set an assignee');
       }
       await validateAssignee(tx, project.teamId, input.assignedToId ?? null);

@@ -90,6 +90,7 @@ describe('PostgreSQL API integration (requires a separate *_test database)', { s
     assert.deepEqual(wrong.body, missing.body);
   });
   test('valid access token retrieves current profile; update permits name only', async () => {
+    await request(app).get('/api/users/me?unexpected=true').set('Authorization', bearer()).expect(400);
     const response = await request(app).get('/api/users/me').set('Authorization', bearer()).expect(200);
     assert.equal(response.body.user.id, userId);
     safeProfile(response.body);
@@ -142,6 +143,13 @@ describe('PostgreSQL API integration (requires a separate *_test database)', { s
     ]);
     assert.ok([200, 401].includes(rotation.status));
     assert.equal(await database.refreshSession.count({ where: { familyId: original.familyId, revokedAt: null } }), 0);
+  });
+  test('logout in one login family preserves an independent concurrent session', async () => {
+    const [first, second] = await Promise.all([auth.login({ email, password }), auth.login({ email, password })]);
+    await request(app).post('/api/auth/logout').send({ refreshToken: first.refreshToken }).expect(204);
+    await request(app).post('/api/auth/refresh').send({ refreshToken: first.refreshToken }).expect(401);
+    const rotated = await request(app).post('/api/auth/refresh').send({ refreshToken: second.refreshToken }).expect(200);
+    await request(app).get('/api/users/me').set('Authorization', `Bearer ${rotated.body.accessToken}`).expect(200);
   });
   test('removed user cannot use an otherwise valid access JWT', async () => {
     await database.user.delete({ where: { id: userId } });

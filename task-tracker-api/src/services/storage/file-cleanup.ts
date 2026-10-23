@@ -26,7 +26,14 @@ export async function cleanupFiles(limit = 50, onlyKeys?: string[]) {
         return true;
       });
       if (done) cleaned++;
-    } catch { failed++; }
+    } catch {
+      failed++;
+      // A permanently failing oldest job must not starve the rest of the queue.
+      try {
+        await database.fileCleanup.updateMany({ where: { storageKey: job.storageKey, notBefore: { lte: new Date() } },
+          data: { notBefore: new Date(Date.now() + 60_000) } });
+      } catch { /* Preserve the existing durable job if the database is down. */ }
+    }
   }
   return { cleaned, failed };
 }
