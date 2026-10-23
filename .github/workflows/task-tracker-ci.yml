@@ -1,0 +1,58 @@
+name: Task tracker CI
+
+on:
+  push:
+    paths: ['task-tracker-api/**', '.github/workflows/task-tracker-ci.yml']
+  pull_request:
+    paths: ['task-tracker-api/**', '.github/workflows/task-tracker-ci.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: task-tracker-api
+    services:
+      postgres:
+        image: postgres:17.2
+        env:
+          POSTGRES_USER: airtribe_verify_role
+          POSTGRES_PASSWORD: ephemeral-fixture-84620
+          POSTGRES_DB: airtribe_verify_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U airtribe_verify_role -d airtribe_verify_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://airtribe_verify_role:ephemeral-fixture-84620@localhost:5432/unused_development
+      TEST_DATABASE_URL: postgresql://airtribe_verify_role:ephemeral-fixture-84620@localhost:5432/airtribe_verify_test
+      JWT_ISSUER: task-tracker-ci
+      JWT_AUDIENCE: task-tracker-ci-client
+      CORS_ORIGIN: http://localhost:5173
+      UPLOAD_DIR: .private/ci-uploads
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22.13.0'
+          cache: npm
+          cache-dependency-path: task-tracker-api/package-lock.json
+      - name: Generate disposable signing key
+        run: node -e "require('node:fs').appendFileSync(process.env.GITHUB_ENV, 'JWT_SECRET=' + require('node:crypto').randomBytes(32).toString('hex') + '\n')"
+      - run: npm ci
+      - run: npm run prisma:validate
+      - run: npm run prisma:generate
+      - run: npm run test:db:migrate
+      - run: npm run docs:validate
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
+      - run: npm run test:runtime
+      - run: npm audit --audit-level=high

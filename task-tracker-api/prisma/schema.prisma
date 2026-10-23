@@ -1,0 +1,199 @@
+generator client {
+  provider               = "prisma-client"
+  output                 = "../src/generated/prisma"
+  moduleFormat           = "esm"
+  generatedFileExtension = "ts"
+  importFileExtension    = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String
+  email           String           @unique
+  passwordHash    String
+  refreshSessions RefreshSession[]
+  ownedTeams      Team[]           @relation("TeamOwner")
+  memberships     TeamMember[]
+  sentInvitations TeamInvitation[] @relation("InvitationSender")
+  createdProjects Project[]        @relation("ProjectCreator")
+  createdTasks    Task[]           @relation("TaskCreator")
+  assignedTasks   Task[]           @relation("TaskAssignee")
+  taskComments    TaskComment[]
+  taskAttachments TaskAttachment[]
+  createdAt       DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(3)
+}
+
+model RefreshSession {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  familyId  String    @db.Uuid
+  tokenHash String    @unique @db.Char(64)
+  expiresAt DateTime  @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+}
+
+enum TeamRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+model Team {
+  id          String           @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  ownerId     String           @db.Uuid
+  createdAt   DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime         @updatedAt @db.Timestamptz(3)
+  owner       User             @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  memberships TeamMember[]
+  invitations TeamInvitation[]
+  projects    Project[]
+
+  @@index([ownerId])
+}
+
+model TeamMember {
+  id       String   @id @default(uuid()) @db.Uuid
+  teamId   String   @db.Uuid
+  userId   String   @db.Uuid
+  role     TeamRole @default(MEMBER)
+  joinedAt DateTime @default(now()) @db.Timestamptz(3)
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+}
+
+model TeamInvitation {
+  id           String           @id @default(uuid()) @db.Uuid
+  teamId       String           @db.Uuid
+  invitedEmail String
+  invitedById  String           @db.Uuid
+  status       InvitationStatus @default(PENDING)
+  expiresAt    DateTime         @db.Timestamptz(3)
+  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
+  respondedAt  DateTime?        @db.Timestamptz(3)
+  team         Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  invitedBy    User             @relation("InvitationSender", fields: [invitedById], references: [id], onDelete: Restrict)
+
+  // Pending invitation uniqueness is a partial index in the SQL migration.
+  @@index([teamId, invitedEmail])
+  @@index([invitedEmail, createdAt, id])
+  @@index([invitedById])
+  @@index([status, expiresAt])
+}
+
+model Project {
+  id          String   @id @default(uuid()) @db.Uuid
+  teamId      String   @db.Uuid
+  name        String
+  description String?
+  createdById String   @db.Uuid
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy   User     @relation("ProjectCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  tasks       Task[]
+
+  @@index([teamId, createdAt, id])
+  @@index([createdById])
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Task {
+  id           String           @id @default(uuid()) @db.Uuid
+  title        String
+  description  String?
+  status       TaskStatus       @default(TODO)
+  priority     TaskPriority     @default(MEDIUM)
+  dueDate      DateTime?        @db.Timestamptz(3)
+  completedAt  DateTime?        @db.Timestamptz(3)
+  projectId    String           @db.Uuid
+  assignedToId String?          @db.Uuid
+  createdById  String           @db.Uuid
+  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime         @updatedAt @db.Timestamptz(3)
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedTo   User?            @relation("TaskAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy    User             @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  comments     TaskComment[]
+  attachments  TaskAttachment[]
+
+  // Completion consistency is also protected by a SQL CHECK in the migration.
+  @@index([projectId, status])
+  @@index([assignedToId, status])
+  @@index([projectId, dueDate])
+  @@index([createdById])
+  @@index([projectId, createdAt, id])
+}
+
+model TaskComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  taskId    String   @db.Uuid
+  authorId  String   @db.Uuid
+  content   String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([taskId, createdAt, id])
+  @@index([authorId])
+}
+
+model TaskAttachment {
+  id           String   @id @default(uuid()) @db.Uuid
+  taskId       String   @db.Uuid
+  uploadedById String   @db.Uuid
+  originalName String
+  storageKey   String   @unique
+  mimeType     String
+  sizeBytes    Int
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  // SQL DELETE trigger queues durable cleanup, including cascading deletes.
+  @@index([taskId, createdAt, id])
+  @@index([uploadedById])
+}
+
+model FileCleanup {
+  storageKey String   @id
+  notBefore  DateTime @default(now()) @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([notBefore, createdAt])
+}
