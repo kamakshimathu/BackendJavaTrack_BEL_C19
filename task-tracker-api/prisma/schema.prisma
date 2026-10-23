@@ -22,6 +22,8 @@ model User {
   createdProjects Project[]        @relation("ProjectCreator")
   createdTasks    Task[]           @relation("TaskCreator")
   assignedTasks   Task[]           @relation("TaskAssignee")
+  taskComments    TaskComment[]
+  taskAttachments TaskAttachment[]
   createdAt       DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt       DateTime         @updatedAt @db.Timestamptz(3)
 }
@@ -131,21 +133,23 @@ enum TaskPriority {
 }
 
 model Task {
-  id           String       @id @default(uuid()) @db.Uuid
+  id           String           @id @default(uuid()) @db.Uuid
   title        String
   description  String?
-  status       TaskStatus   @default(TODO)
-  priority     TaskPriority @default(MEDIUM)
-  dueDate      DateTime?    @db.Timestamptz(3)
-  completedAt  DateTime?    @db.Timestamptz(3)
-  projectId    String       @db.Uuid
-  assignedToId String?      @db.Uuid
-  createdById  String       @db.Uuid
-  createdAt    DateTime     @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime     @updatedAt @db.Timestamptz(3)
-  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assignedTo   User?        @relation("TaskAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
-  createdBy    User         @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  status       TaskStatus       @default(TODO)
+  priority     TaskPriority     @default(MEDIUM)
+  dueDate      DateTime?        @db.Timestamptz(3)
+  completedAt  DateTime?        @db.Timestamptz(3)
+  projectId    String           @db.Uuid
+  assignedToId String?          @db.Uuid
+  createdById  String           @db.Uuid
+  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime         @updatedAt @db.Timestamptz(3)
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedTo   User?            @relation("TaskAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy    User             @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  comments     TaskComment[]
+  attachments  TaskAttachment[]
 
   // Completion consistency is also protected by a SQL CHECK in the migration.
   @@index([projectId, status])
@@ -153,4 +157,43 @@ model Task {
   @@index([projectId, dueDate])
   @@index([createdById])
   @@index([projectId, createdAt, id])
+}
+
+model TaskComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  taskId    String   @db.Uuid
+  authorId  String   @db.Uuid
+  content   String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([taskId, createdAt, id])
+  @@index([authorId])
+}
+
+model TaskAttachment {
+  id           String   @id @default(uuid()) @db.Uuid
+  taskId       String   @db.Uuid
+  uploadedById String   @db.Uuid
+  originalName String
+  storageKey   String   @unique
+  mimeType     String
+  sizeBytes    Int
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  // SQL DELETE trigger queues durable cleanup, including cascading deletes.
+  @@index([taskId, createdAt, id])
+  @@index([uploadedById])
+}
+
+model FileCleanup {
+  storageKey String   @id
+  notBefore  DateTime @default(now()) @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([notBefore, createdAt])
 }

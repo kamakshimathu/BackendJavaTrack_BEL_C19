@@ -8,3 +8,4 @@ src/generated/prisma/
 coverage/
 .DS_Store
 Thumbs.db
+.private/

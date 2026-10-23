@@ -20,6 +20,7 @@ const envSchema = z.object({
   JWT_AUDIENCE: z.string().trim().min(1).max(200),
   ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).max(900).default(900),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(30).default(7),
+  UPLOAD_DIR: z.string().trim().min(1).default('.private/uploads'),
 });
 
 const result = envSchema.safeParse(process.env);

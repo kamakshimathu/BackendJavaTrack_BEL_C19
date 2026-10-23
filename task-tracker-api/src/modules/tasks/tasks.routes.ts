@@ -4,6 +4,8 @@ import { emptyQuerySchema, projectParamsSchema } from '../../shared/request-sche
 import { assignedTaskQuerySchema, assignTaskSchema, createTaskSchema, projectTaskQuerySchema,
   taskParamsSchema, taskStatusSchema, updateTaskSchema } from './tasks.schemas.js';
 import * as tasks from './tasks.service.js';
+import { taskCommentsRouter } from '../comments/comments.routes.js';
+import { taskAttachmentsRouter } from '../attachments/attachments.routes.js';
 
 export const projectTasksRouter = Router({ mergeParams: true });
 projectTasksRouter.post('/', async (req, res: Response<unknown, AuthLocals>) => {
@@ -50,3 +52,5 @@ tasksRouter.delete('/:taskId', async (req, res: Response<unknown, AuthLocals>) =
   await tasks.deleteTask(res.locals.user.id, taskId);
   res.status(204).end();
 });
+tasksRouter.use('/:taskId/comments', taskCommentsRouter);
+tasksRouter.use('/:taskId/attachments', taskAttachmentsRouter);

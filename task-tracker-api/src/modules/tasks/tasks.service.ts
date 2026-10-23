@@ -4,6 +4,7 @@ import { AppError } from '../../shared/app-error.js';
 import { paginationArgs } from '../../shared/request-schemas.js';
 import { getProject } from '../projects/projects.service.js';
 import { managers, withTeamWrite } from '../teams/team-authorization.js';
+import { tryCleanupFiles } from '../../services/storage/file-cleanup.js';
 import type { CreateTaskInput, UpdateTaskInput, ProjectTaskQuery, AssignedTaskQuery } from './tasks.schemas.js';
 
 const summarySelect = { id: true, name: true } as const;
@@ -16,7 +17,7 @@ const taskSelect = {
 type LockedTask = Prisma.TaskGetPayload<{ include: { project: { select: { teamId: true } } } }>;
 
 const taskNotFound = () => new AppError(404, 'Task not found');
-const taskVisibility = (actorId: string): Prisma.TaskWhereInput => ({
+export const taskVisibility = (actorId: string): Prisma.TaskWhereInput => ({
   project: { team: { memberships: { some: { userId: actorId } } } },
 });
 
@@ -26,7 +27,7 @@ async function validateAssignee(tx: Prisma.TransactionClient, teamId: string, as
   if (!member) throw new AppError(422, 'Assignee must be a current member of the project team');
 }
 
-async function withTaskWrite<T>(actorId: string, taskId: string,
+export async function withTaskWrite<T>(actorId: string, taskId: string,
   operation: (tx: Prisma.TransactionClient, task: LockedTask, member: TeamMember) => Promise<T>): Promise<T> {
   const reference = await database.task.findFirst({ where: { id: taskId, ...taskVisibility(actorId) },
     select: { project: { select: { teamId: true } } } });
@@ -142,9 +143,12 @@ export function changeTaskStatus(actorId: string, taskId: string, status: TaskSt
   });
 }
 
-export function deleteTask(actorId: string, taskId: string): Promise<void> {
-  return withTaskWrite(actorId, taskId, async (tx, task, member) => {
+export async function deleteTask(actorId: string, taskId: string): Promise<void> {
+  const keys = await withTaskWrite(actorId, taskId, async (tx, task, member) => {
     if (!managers.includes(member.role) && task.createdById !== actorId) throw taskNotFound();
+    const attachments = await tx.taskAttachment.findMany({ where: { taskId }, select: { storageKey: true }, take: 50 });
     await tx.task.delete({ where: { id: taskId } });
+    return attachments.map((attachment) => attachment.storageKey);
   });
+  if (keys.length) await tryCleanupFiles(keys);
 }

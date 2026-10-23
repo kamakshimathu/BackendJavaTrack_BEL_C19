@@ -7,6 +7,8 @@ const adapter = new PrismaPg({
   connectionTimeoutMillis: 5_000,
   idleTimeoutMillis: 30_000,
   max: 10,
+  // The Prisma pg adapter expects UTC for timezone-aware timestamp conversion.
+  options: '-c timezone=UTC',
   // Bound query time for startup and readiness checks.
   statement_timeout: 5_000,
   query_timeout: 6_000,

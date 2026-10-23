@@ -1,6 +1,6 @@
 # Task Tracker API
 
-Milestone 4: task management, assignment, search, filtering, sorting, and pagination, preserving authentication, teams, invitations, and projects. No comments, attachments, notifications, WebSockets, or AI features.
+Milestone 5: task comments and private file attachments, preserving authentication, teams, invitations, projects, and task management. No notifications, WebSockets, email delivery, or AI features.
 
 ## Stack and configuration
 
@@ -14,8 +14,8 @@ Milestone 4: task management, assignment, search, filtering, sorting, and pagina
 
 ```text
 prisma/
-  schema.prisma              # Users, sessions, teams, invitations, projects, tasks
-  migrations/                # Forward-only foundation/auth/collaboration/task migrations
+  schema.prisma              # Domain models, comments, attachments, cleanup jobs
+  migrations/                # Additive forward migrations, constraints and cleanup trigger
 prisma.config.ts             # Prisma CLI configuration
 src/
   config/
@@ -34,6 +34,9 @@ src/
     invitations/             # Invite creation, listing, accept/decline
     projects/                # Team-scoped project access
     tasks/                   # Task schemas, routes, permission/assignment services
+    comments/                # Comment routes and author/moderation rules
+    attachments/             # Multipart parsing, content validation, metadata/downloads
+  services/storage/          # Private storage interface, local disk, cleanup queue/CLI
   shared/app-error.ts        # Expected application errors
   shared/request-schemas.ts  # Strict UUID/body/query validation and pagination
   app.ts                     # Express middleware and routes
@@ -72,7 +75,7 @@ npm.cmd run prisma:generate
 npm.cmd run typecheck
 npm.cmd run prisma:validate
 # Review pending migration SQL, including:
-# prisma/migrations/20261024000300_task_management/migration.sql
+# prisma/migrations/20261024000400_comments_attachments/migration.sql
 # Apply the already generated forward migration to the confirmed target:
 npm.cmd run prisma:migrate:deploy
 # Prisma 7 migrations do not generate the client automatically:
@@ -113,6 +116,8 @@ During Milestone 2 the existing database was inspected read-only and had zero Us
 The Milestone 3 migration is additive: it creates four tables, two enums, foreign keys, and indexes without changing existing users or sessions. It is wrapped in a transaction and has been applied only to the approved isolated test database. The development database is not migrated automatically. Use `prisma:migrate:deploy` to apply the existing reviewed migration, not a reset.
 
 The Milestone 4 migration is also additive: it creates Task, TaskStatus, TaskPriority, foreign keys, five indexes, and a completion-consistency CHECK. It does not change existing user/team/project rows. It has been applied to the isolated test database only. No new dependencies or environment settings are needed.
+
+Milestone 5 adds comments, attachment metadata, and a durable FileCleanup table plus a deletion trigger. This migration is applied only to the isolated test database during implementation. Your development schema and data are left untouched until you run the reviewed migration. Existing migration SQL is preserved.
 
 ## Authentication and profile API
 
@@ -337,6 +342,89 @@ Get-Process -Id <PID>
 
 Stop an old API in its own terminal with Ctrl+C, then run `npm.cmd run dev` from this project directory. For compiled mode, run `npm.cmd run build` before `npm.cmd start`; start does not rebuild dist. Do not terminate unrelated Node processes. Confirm `/api/health`, the port, current membership, and the exact printed URL. A route-level 404 (`Route not found`) differs from authorization/resource-level 404 (`Team not found`/`Project not found`); malformed nonempty UUIDs return 400, and missing/expired authentication returns 401.
 
+## Task comments and private attachments
+
+### Models and permissions
+
+`TaskComment` stores UUID id, taskId, authorId, content, createdAt, and updatedAt. `TaskAttachment` stores UUID id, taskId, uploadedById, originalName, unique private storageKey, mimeType, sizeBytes, and createdAt. Both have `(taskId, createdAt, id)` indexes for chronological pagination and author/uploader foreign-key indexes. Task deletion cascades their metadata; author/uploader deletion is restricted to retain attribution. A separate FileCleanup table deliberately has no task/attachment foreign key, so cleanup survives cascading deletion.
+
+All endpoints require a Bearer JWT and current team membership. Comment edits are **author only**, even for OWNER/ADMIN. Authors or current OWNER/ADMIN may delete comments; uploaders or current OWNER/ADMIN may delete attachments. Other members can list comments/files, add their own, and download authorized files. Former members lose all access, including to their own comments/uploads. Services enforce permissions under the existing task/team lock for mutations. Private resource IDs return matching 404 responses when unknown or inaccessible; known-team permission failures return 403.
+
+| Method/path | Request | Success |
+| --- | --- | --- |
+| POST `/api/tasks/:taskId/comments` | `{"content":"Ready for review."}` | 201 `{"comment":{...}}` |
+| GET `/api/tasks/:taskId/comments` | `?page=1&limit=20` | 200 `{"comments":[...],"pagination":{...}}` |
+| PATCH `/api/comments/:commentId` | `{"content":"Updated review note."}` | 200 updated comment |
+| DELETE `/api/comments/:commentId` | Empty body | 204 |
+| POST `/api/tasks/:taskId/attachments` | multipart, exactly one file field named `file` | 201 `{"attachment":{...}}` |
+| GET `/api/tasks/:taskId/attachments` | `?page=1&limit=20` | 200 `{"attachments":[...],"pagination":{...}}` |
+| GET `/api/attachments/:attachmentId/download` | No body | 200 streamed file |
+| DELETE `/api/attachments/:attachmentId` | Empty body | 204 logical deletion |
+
+Comments are trimmed plain-text strings, 1–5,000 characters. Unknown fields and empty updates are rejected; author/task/timestamps are never accepted from clients. Editing preserves createdAt. Responses include `author: {id,name}`. Collections sort createdAt ascending then UUID ascending; page/limit use the existing defaults 1/20 and maximum limit 100. Comment content is returned as JSON text, not rendered or HTML-sanitized; clients must render it as text rather than injecting HTML.
+
+Public attachment metadata includes id, taskId, uploadedById, originalName, mimeType, sizeBytes, createdAt, `uploadedBy: {id,name}`, and `downloadUrl: "/api/attachments/<uuid>/download"`. Storage keys, paths, email, passwords, and tokens are excluded. Both listing and download queries enforce current team membership.
+
+### Storage and upload validation
+
+Run `npm.cmd ci` after pulling this change. Multer is pinned to **2.5.0**, with strict TypeScript definitions. The version was checked against the [October 22 security advisory](https://github.com/expressjs/multer/security/advisories/GHSA-q7qp-rjg7-q26m), whose patched release is 2.5.0; the older middleware documentation was still showing 2.4.0. No global upload middleware or asynchronous fileFilter is used.
+
+`UPLOAD_DIR` defaults to `.private/uploads`, relative to this project's working directory. It is lazy-created, excluded from Git, and never exposed through express.static. An absolute path to a dedicated private directory is also supported. Keep a custom directory outside every webroot and add a Git ignore rule if it is inside the checkout. Every app/cleanup process using one database must use the **same persistent storage directory**. Changing the directory does not move existing files or change their metadata. Back up files and database together.
+
+The storage interface provides save/open/delete operations behind a local implementation, so a future S3 implementation can replace it. Internal keys are random UUIDs without extensions; paths never come from client filenames. Exclusive file creation prevents overwriting existing files. Keys must match the server's UUID format before filesystem access. Root/leaf symlinks are rejected for reads, and realpath checks reject redirected storage roots. File deletion only unlinks a validated single key and never recursively removes directories. Directory/file modes request 0700/0600; Windows deployments must additionally restrict directory ACLs to the service account. This is not protection against a local administrator who can modify storage or the database.
+
+Allowed types and matching declared MIME are PDF (`application/pdf`), PNG (`image/png`), JPEG (`image/jpeg`, .jpg/.jpeg), and TXT (`text/plain`). Maximum size is **5 MiB (5,242,880 bytes)**; empty files are rejected. PDF header/end markers, PNG signature/IHDR/IEND markers, and JPEG start/end markers are checked. TXT must decode as UTF-8, contain non-whitespace text, and exclude binary/control characters except normal tab/newline/carriage return. This is bounded signature validation, not complete document/image parsing or malware detection.
+
+Original names use a conservative 120-character ASCII, single-extension policy. Paths, separators, drive/ADS syntax, Windows device names, hidden/double extensions, and unsafe control/Unicode names are rejected. Rename complex legitimate names such as `report.v2.pdf` to `report-v2.pdf`. MIME, extension, and content must agree; filenames/MIME are never trusted on their own.
+
+JWT/task authorization runs **before** multipart parsing. The parser accepts one `file`, no text fields, at most two multipart parts (with file/field limits enforcing the one-file contract), bounded field names/headers, and a 5 MiB file cap. Upload content is held in bounded memory for validation; four concurrent requests are allowed per process, with a 60-request/15-minute IP rate limit. Additional concurrency is rejected with 429. Apply proxy body/time limits and a shared rate-limit store for production; in-memory limits reset on restart and do not impose a total disk quota.
+
+Validation failures return 400 for unsafe names, empty/malformed multipart, unknown fields, or missing files; 413 for oversized files; 415 for unsupported/mismatched content types or invalid text. Authorization failures return 401/403/404 as elsewhere. Internal failures return controlled 500 JSON without filesystem/SQL details.
+
+### Private downloads
+
+Downloads authorize membership before opening the file, stream from a file handle, and use Content-Disposition **attachment**, X-Content-Type-Options **nosniff**, Cache-Control **no-store**, and a restrictive sandbox CSP. No inline rendering or public upload URL exists. Missing/unreadable files or invalid stored references return controlled 500 `Stored file is unavailable` (or a generic safe storage error), while absent/inaccessible metadata returns 404. A stream failure after headers closes the response instead of leaking error details. An already-authorized download is not interrupted solely because membership is subsequently removed.
+
+### File cleanup, failures and recovery
+
+Database changes and filesystem changes are **not one atomic transaction**. The implementation uses compensation and a durable queue:
+
+1. After validation, an upload commits a FileCleanup reservation **before writing** bytes. The reservation is deferred for one hour to protect in-flight work.
+2. A file is written under its opaque key. Finalization rechecks task membership under the team lock, locks the reservation, requires its lease to remain valid, creates attachment metadata, and removes the reservation in one database transaction.
+3. Storage/metadata failures attempt immediate cleanup. Failed cleanup stays queued; interrupted uploads remain eligible after the one-hour lease. Missing files count as successfully cleaned. An upload lasting longer than its lease fails finalization and needs retry.
+4. An SQL AFTER DELETE trigger queues attachment keys in the same transaction that deletes metadata, including task/project/team cascades. Removing metadata immediately removes download access. A 204 response means **logical deletion**; a locked/unavailable physical file can remain private pending cleanup.
+5. Attachment deletion attempts its key immediately; task deletion attempts up to 50 keys. Additional or failed jobs remain durable. Repeated DELETE returns 404 once metadata is gone; concurrent requests yield one 204 and a 404 without duplicating deletion.
+
+Run the bounded maintenance command with the **same database and UPLOAD_DIR**:
+
+```powershell
+npm.cmd run storage:cleanup
+```
+
+It processes up to 100 due jobs, prints counts only, uses row locks with SKIP LOCKED for concurrent workers, and retains failures for retry. Live attachment references are never deleted. For larger queues, run it again. Schedule it periodically using your deployment's job runner/Windows Task Scheduler; **no scheduler is installed automatically**. Monitor FileCleanup backlog and free disk space. Repair directory permissions, release Windows file locks, or restore storage availability before retrying. Never truncate FileCleanup, delete its SQL trigger, change upload roots mid-queue, or remove arbitrary files to clear an error.
+
+The Prisma pg adapter in the installed version expects UTC database sessions. Testing exposed an 11-hour shift for database-generated timestamps under the local Sydney session, which prevented cleanup jobs becoming due. Database configuration now requests UTC for every application connection; a regression test compares database-generated timestamps with the application clock. No existing stored timestamps were rewritten. Historical records created before this correction may require a separate audited timestamp review.
+
+There is still no distributed filesystem/database transaction. Severe storage outages, exhausted disk space, abrupt power loss, or an upload I/O operation stalled beyond its one-hour lease can require operator recovery. Backups, disk quotas, malware scanning/content disarm, full format parsing, and dedicated cleanup workers remain production improvements. PDFs/images can contain malicious content despite valid signatures; users should treat downloads as untrusted.
+
+### PowerShell and curl examples
+
+Use existing `$accessToken`, `$taskId`, and an actual allowed local file. Do not print/share tokens or commit collections containing them.
+
+```powershell
+$baseUrl = 'http://localhost:3000'
+$headers = @{ Authorization = "Bearer $accessToken" }
+$comment = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/tasks/$taskId/comments" -Headers $headers -ContentType 'application/json' -Body (@{ content = 'Ready for review.' } | ConvertTo-Json)
+# curl.exe works in Windows PowerShell without PowerShell 7's multipart -Form support.
+$uploadedJson = curl.exe --silent --show-error --fail-with-body -X POST "$baseUrl/api/tasks/$taskId/attachments" -H "Authorization: Bearer $accessToken" -F 'file=@C:/path/to/notes.txt;type=text/plain'
+$uploaded = ($uploadedJson -join "`n") | ConvertFrom-Json
+$attachmentId = $uploaded.attachment.id
+Invoke-WebRequest -Uri "$baseUrl/api/attachments/$attachmentId/download" -Headers $headers -OutFile '.\downloaded-notes.txt' -UseBasicParsing
+Invoke-RestMethod -Method Delete -Uri "$baseUrl/api/attachments/$attachmentId" -Headers $headers
+```
+
+For Postman, Body → form-data → key `file` → type File. Send no other fields and let the client set the multipart boundary; do not manually set the outer Content-Type to application/pdf. The file part must have the matching allowed MIME type.
+
 ## Tests
 
 ```powershell
@@ -352,7 +440,7 @@ npm.cmd run test:db:migrate
 npm.cmd run test:integration
 ```
 
-During Milestone 2, creation of `task_tracker_auth_test` on the configured server was explicitly approved. It has been reused and now has all four migrations applied. Its URL was passed only through subprocess environment variables; your `.env` was left unchanged. Add TEST_DATABASE_URL privately to rerun the suite through npm scripts.
+During Milestone 2, creation of `task_tracker_auth_test` on the configured server was explicitly approved. It has been reused and now has all five migrations applied. Its URL was passed only through subprocess environment variables; your `.env` was left unchanged. Add TEST_DATABASE_URL privately to rerun the suite through npm scripts.
 
 The migration helper refuses the configured development database and applies only normal migrations to the named test database. Tests refuse the development database, generate fresh signing secrets in memory, use uniquely named fixtures, and delete only those fixtures afterward. They never truncate/reset tables. Existing coverage includes registration and uniqueness races, login, profiles, real health connectivity, hashed token persistence, rotation/reuse/expiry, simultaneous refresh, refresh/logout races, retryable logout, and deleted-user rejection. The collaboration suite adds role matrices, owner protection, self-removal, direct service authorization, invitation isolation/expiry/concurrent creation/concurrent acceptance, database uniqueness constraints, project isolation, pagination, and strict validation. Without TEST_DATABASE_URL, PostgreSQL suites are explicitly skipped; a green database-free test run does not establish persistence correctness.
 
@@ -366,8 +454,9 @@ Email verification, password reset/change, signing-key rotation, session listing
 
 ## Actual verification
 
-- Milestone 4 requires no additional dependencies; it reuses the installed stack.
+- Installed pinned Multer 2.5.0 and its type definitions; npm reported zero vulnerabilities.
 - Prisma client generation, schema validation, application/config/test type checks, and production build passed.
-- All **85 automated tests passed** with the approved isolated PostgreSQL database: 36 task integration tests, 30 collaboration integration tests, 13 authentication integration tests, and six security tests, with no skips or failures.
+- All **116 automated tests passed** with the approved isolated PostgreSQL database: 31 comment/attachment integration tests, 36 task integration tests, 30 collaboration integration tests, 13 authentication integration tests, and six security tests, with no skips or failures.
 - Task tests cover defaults/validation, task permissions, literal network project-route regression, cross-team isolation, composed filtering/search/sorting, timestamp consistency, current-membership assignment feeds, removal cleanup, and concurrent assignment/creation/removal.
-- Migration application and real health connectivity were verified against the test database. The Milestone 4 development migration remains unapplied. Keep existing private database/JWT settings; no new Milestone 4 environment variables are required.
+- New tests use a unique temporary storage directory, real PostgreSQL metadata, real file reads/writes, and scoped cleanup. Failure injection verifies database-insertion compensation, partial storage failure, failed deletion retry, crash reservations, cascades, and concurrent deletion. Upload content/type/size/path tests, authorization, pagination, credential exclusion, and UTC timestamps are covered. Temporary files and fixtures are removed after tests.
+- Migration application and real health connectivity were verified against the test database. The Milestone 5 development migration remains unapplied. Existing private JWT/database settings are retained; optional UPLOAD_DIR has a safe default. No .env file was overwritten.

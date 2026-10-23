@@ -11,6 +11,8 @@ import { teamsRouter } from './modules/teams/teams.routes.js';
 import { invitationsRouter } from './modules/invitations/invitations.routes.js';
 import { projectsRouter } from './modules/projects/projects.routes.js';
 import { tasksRouter } from './modules/tasks/tasks.routes.js';
+import { commentsRouter } from './modules/comments/comments.routes.js';
+import { attachmentsRouter } from './modules/attachments/attachments.routes.js';
 
 export const app = express();
 
@@ -25,5 +27,7 @@ app.use('/api/teams', teamsRouter);
 app.use('/api/invitations', invitationsRouter);
 app.use('/api/projects', projectsRouter);
 app.use('/api/tasks', tasksRouter);
+app.use('/api/comments', commentsRouter);
+app.use('/api/attachments', attachmentsRouter);
 app.use(notFound);
 app.use(errorHandler);
