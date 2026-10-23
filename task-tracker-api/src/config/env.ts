@@ -14,6 +14,12 @@ const envSchema = z.object({
     }
   }),
   CORS_ORIGIN: z.string().url().default('http://localhost:5173'),
+  JWT_SECRET: z.string().regex(/^[a-fA-F0-9]{64,}$/).refine((value) => value.length % 2 === 0
+    && new Set(value.toLowerCase()).size >= 8),
+  JWT_ISSUER: z.string().trim().min(1).max(200),
+  JWT_AUDIENCE: z.string().trim().min(1).max(200),
+  ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).max(900).default(900),
+  REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(30).default(7),
 });
 
 const result = envSchema.safeParse(process.env);

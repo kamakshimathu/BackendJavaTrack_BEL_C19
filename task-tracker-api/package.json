@@ -1,7 +1,7 @@
 {
   "name": "task-tracker-api",
   "version": "1.0.0",
-  "description": "Task Tracking and Team Collaboration REST API — Milestone 1",
+  "description": "Task Tracking and Team Collaboration REST API - Milestone 2",
   "private": true,
   "main": "dist/server.js",
   "engines": {
@@ -9,7 +9,10 @@
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "typecheck": "tsc --noEmit && tsc --project tsconfig.prisma.json",
+    "typecheck": "tsc --noEmit && tsc --project tsconfig.prisma.json && tsc --project tsconfig.tests.json",
+    "test": "node --import tsx --test tests/security.test.ts tests/auth.integration.test.ts",
+    "test:integration": "node --import tsx --test tests/auth.integration.test.ts",
+    "test:db:migrate": "node scripts/migrate-test-database.mjs",
     "build": "npm run prisma:generate && tsc",
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
@@ -27,17 +30,22 @@
     "@types/express": "5.0.6",
     "@types/node": "22.20.5",
     "@types/pg": "8.23.1",
+    "@types/supertest": "7.2.1",
     "prisma": "7.10.1",
+    "supertest": "7.3.1",
     "tsx": "4.23.15",
     "typescript": "5.9.3"
   },
   "dependencies": {
+    "@node-rs/argon2": "2.2.2",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
     "cors": "2.8.6",
     "dotenv": "18.0.9",
     "express": "5.3.0",
+    "express-rate-limit": "8.7.1",
     "helmet": "8.3.0",
+    "jose": "6.2.13",
     "pg": "8.23.1",
     "zod": "4.6.7"
   }

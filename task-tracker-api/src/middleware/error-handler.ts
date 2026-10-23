@@ -1,8 +1,19 @@
 import type { ErrorRequestHandler } from 'express';
+import { ZodError } from 'zod';
+import { AppError } from '../shared/app-error.js';
 
 export const errorHandler: ErrorRequestHandler = (error: unknown, _req, res, next) => {
   if (res.headersSent) {
     next(error);
+    return;
+  }
+
+  if (error instanceof AppError) {
+    res.status(error.status).json({ error: { message: error.message } });
+    return;
+  }
+  if (error instanceof ZodError) {
+    res.status(400).json({ error: { message: 'Invalid request input' } });
     return;
   }
 
