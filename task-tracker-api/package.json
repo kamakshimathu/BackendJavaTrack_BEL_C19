@@ -1,0 +1,60 @@
+{
+  "name": "task-tracker-api",
+  "version": "1.0.0",
+  "description": "Task Tracking and Team Collaboration REST API",
+  "private": true,
+  "main": "dist/server.js",
+  "engines": {
+    "node": "22.13.0"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "typecheck": "tsc --noEmit && tsc --project tsconfig.prisma.json && tsc --project tsconfig.tests.json",
+    "test": "node --import tsx --test tests/security.test.ts tests/auth.integration.test.ts tests/collaboration.integration.test.ts tests/tasks.integration.test.ts tests/discussion.integration.test.ts",
+    "test:integration": "node --import tsx --test tests/auth.integration.test.ts tests/collaboration.integration.test.ts tests/tasks.integration.test.ts tests/discussion.integration.test.ts",
+    "storage:cleanup": "node dist/services/storage/cleanup-command.js",
+    "docs:validate": "node scripts/validate-docs.mjs",
+    "docs:generate": "node scripts/generate-openapi.mjs",
+    "test:runtime": "node --test tests/runtime.test.mjs",
+    "test:db:migrate": "node scripts/migrate-test-database.mjs",
+    "build": "npm run prisma:generate && tsc",
+    "start": "node dist/server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:validate": "prisma validate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:studio": "prisma studio"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@apidevtools/swagger-parser": "12.1.0",
+    "@types/cors": "2.8.19",
+    "@types/express": "5.0.6",
+    "@types/multer": "2.3.0",
+    "@types/node": "22.20.5",
+    "@types/pg": "8.23.1",
+    "@types/supertest": "7.2.1",
+    "prisma": "7.10.1",
+    "supertest": "7.3.1",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "yaml": "2.9.1"
+  },
+  "dependencies": {
+    "@node-rs/argon2": "2.2.2",
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "cors": "2.8.6",
+    "dotenv": "18.0.9",
+    "express": "5.3.0",
+    "express-rate-limit": "8.7.1",
+    "helmet": "8.3.0",
+    "jose": "6.2.13",
+    "multer": "2.5.0",
+    "pg": "8.23.1",
+    "zod": "4.6.7"
+  }
+}
